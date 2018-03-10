@@ -5,10 +5,18 @@ module Fastlane
   module Actions
     class CourageAction < Action
       def self.run(params)
+
+        if  params[:sil_file] 
+          Helper::SILParser.new(params[:sil_file])
+          return 
+        end
         UI.message("The courage plugin is working!")
         start_device(device:params[:device])
-        command = "xcodebuild clean build-for-testing -project #{params[:project]} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
+        project = "-project #{params[:project]}"
+        project = "-workspace #{params[:workspace]}" if params[:workspace]
+        command = "xcodebuild clean build-for-testing #{project} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
 
+        all_builds = []
         buildCommands = []
         linkCommand = nil
 
@@ -21,8 +29,12 @@ module Fastlane
           prefix: "",
           block: proc do |value|
 
-            if value.start_with?("=== BUILD TARGET")
-              enabledTarget = true
+            if value.include?("=== BUILD TARGET")
+              if !buildCommands.empty?
+                all_builds.push(buildCommands)
+                buildCommands = []
+              end
+              enabledTarget = value.include?("=== BUILD TARGET #{params[:target]}")
               linkGroup = false
             end
 
@@ -61,16 +73,38 @@ module Fastlane
                                                   raise ex
                                                 end
                                               end)
-              files = make_sibs(commands:buildCommands, linkCommand: linkCommand)
 
-              start_mutations(files:files, params: params)
+if !buildCommands.empty?
+                all_builds.push(buildCommands)
+                buildCommands = []
+              end
+
+              all_builds.each {|buildCommands|
+                files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand)
+
+                start_mutations(files:files, params: params)
+              }
       end
 
       def self.make_sibs(commands:commands, linkCommand: linkCommand)
         files = []
+        all_swifts = commands.reduce([]) {|prev,file| prev.push(file[/\s-primary-file\s(.*?\.swift)\s/,1])}
+        puts all_swifts
         commands.each do |element|
-          compilingFile = element[/\s-primary-file\s(.*?\.swift)/,1]
+          compilingFile = element[/\s-primary-file\s(.*?\.swift)\s/,1]
           oFile = element[/\s-o\s(.*?[^\\])\s/,1]
+
+          # filelist prepare: TODO
+          element = element.gsub(/\s-filelist\s(\S*?)\s/, ' ')
+          element = element.gsub(/\s-primary-file\s(.*?\.swift)\s/, ' ')
+          element = element.gsub(/\s-profile-coverage-mapping\s/, ' ')
+          element = element.gsub(/\s(\S*?\.swift)\s/, ' ')
+          element = all_swifts.reduce(element){ |prev, file| prev.sub(file, ' ') }
+          my_swifts = all_swifts - [compilingFile]
+          element = element + " -primary-file #{compilingFile} " + my_swifts.reduce(" "){|prev,file| prev + file + " "}
+
+
+
           command = element.gsub(/-emit-module-path.*\.swiftmodule /, ' ').gsub('.o ', '.sib ') + " -emit-sib"
           sibFile = command[/\s-o\s(.*?[^\\])\s/,1]
           files.push({sibPath:sibFile, command: element, compilingFile:compilingFile, linkCommand: linkCommand, oFile:oFile})
@@ -99,46 +133,75 @@ module Fastlane
           all_sibs = other_files.reduce("") {|prev,file| prev+file[:sibPath]+" "}
           sil = element[:sibPath].gsub('.sib', '.sil')
           sil_mutated = sil.sub('.sil', '_.sil')
-          `echo "sil_stage canonical" >> #{sil_mutated}`
-          `cat #{element[:compilingFile]} >> #{sil_mutated}`
-          `tail -n +2 #{sil} >> #{sil_mutated}`
+          sil_reference = sil.sub('.sil', '_org.sil')
+          #`echo "sil_stage canonical" >> #{sil_mutated}`
+          #{}`cat #{element[:compilingFile]} >> #{sil_mutated}`
+          #{}`tail -n +2 #{sil} >> #{sil_mutated}`
+          `grep "import" #{element[:compilingFile]} > #{sil_mutated}`
+          `cat #{sil} >> #{sil_mutated}`
+          `cp #{sil_mutated} #{sil_reference}`
           command = element[:command].gsub(/\s(\S*?\.swift)/, ' ').sub(' -primary-file ',' ') + " #{all_sibs} -primary-file #{sil_mutated}"
       
-          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, linkCommand: element[:linkCommand], oFile:element[:oFile]}
+          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, linkCommand: element[:linkCommand], oFile:element[:oFile]}
           totalFiles.push(file)
         end
         totalFiles
       end
 
       def self.start_mutations(files:files, params:params)
-        files.reverse_each do |file|
-          command = file[:rebuildCommand]
+          mutation_succeeded = []   
+          mutation_failed = []                        
+          mutation_skipped = []     
+
+        files.reverse_each do |file|      
+
+          command = file[:rebuildCommand] + " -assume-parsing-unqualified-ownership-sil"
           linkCommand = file[:linkCommand]
           output = file[:oFile]
           `mv #{output} #{output}_`
           # Mutate - TD
+          `cp #{file[:sil_reference]}  #{file[:mutationSill]}`
 
+          begin
           # Build after mutation
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: true,
-                                      print_command: true)
+                                      print_command: true
+                                      )
 
           # Link after mutation
           FastlaneCore::CommandExecutor.execute(command: linkCommand,
                                           print_all: true,
-                                      print_command: true)
+                                      print_command: true
+                                      )
 
-          test_command = "xcodebuild test-without-building -project #{params[:project]} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
+
+        project = "-project #{params[:project]}"
+        project = "-workspace #{params[:workspace]}" if params[:workspace]
+
+          test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
+          begin
           FastlaneCore::CommandExecutor.execute(command: test_command,
                                           print_all: false,
-                                      print_command: false,
-                                      error: proc do |error_output|
-                                        begin
-                                          rescue => ex
-                                        end
-                                        end)
+                                      print_command: true)
+          mutation_failed.push(file)
+            rescue => testEx
+              mutation_succeeded.push(file)
+            end
+
+         rescue => ex
+          mutation_skipped = file
+          end
           `mv #{output}_ #{output}`
         end
+        UI.message("-----------")
+        UI.message("Succeeded:")
+        UI.message("#{mutation_succeeded}")
+        UI.message("Failed:")
+        UI.message("#{mutation_failed.map{|a| a[:sil_reference]}}")
+        UI.message("Skipped:")
+        UI.message("#{mutation_skipped}")
+        UI.message("-----------")
       end
 
       def self.start_device(device:device)
@@ -176,9 +239,19 @@ module Fastlane
           FastlaneCore::ConfigItem.new(key: :project,
                                   env_name: "COURAGE_YOUR_OPTION",
                                description: "A description of your option",
-                                  optional: false,
+                                  optional: true,
+                                      type: String),
+          FastlaneCore::ConfigItem.new(key: :workspace,
+                                  env_name: "COURAGE_YOUR_OPTION",
+                               description: "A description of your option",
+                                  optional: true,
                                       type: String),
           FastlaneCore::ConfigItem.new(key: :scheme,
+                                  env_name: "COURAGE_YOUR_OPTION",
+                               description: "A description of your option",
+                                  optional: false,
+                                      type: String),
+          FastlaneCore::ConfigItem.new(key: :target,
                                   env_name: "COURAGE_YOUR_OPTION",
                                description: "A description of your option",
                                   optional: false,
@@ -187,6 +260,11 @@ module Fastlane
                                   env_name: "COURAGE_YOUR_OPTION",
                                description: "A description of your option",
                                   optional: false,
+                                      type: String),
+          FastlaneCore::ConfigItem.new(key: :sil_file,
+                                  env_name: "COURAGE_YOUR_OPTION",
+                               description: "A description of your option",
+                                  optional: true,
                                       type: String)
         ]
       end
