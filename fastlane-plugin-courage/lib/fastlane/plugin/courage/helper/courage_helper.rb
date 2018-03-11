@@ -14,7 +14,11 @@ module Fastlane
         tokens = tokenize(path)
         parsed = parse(tokens)
 
-        puts parsed
+        # puts parsed
+        parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
+        select{|d| !d[:isExternal]}.each {|definition|
+          puts definition
+        }
       end
 
 
@@ -22,16 +26,16 @@ module Fastlane
         parsed = []
         index = 0
         nextFunction = find_index("function_body_start", tokens, index)
-        unless nextFunction.nil?
+        until nextFunction.nil?
           if nextFunction != index
-            parsed.append({static:tokens[index..(nextFunction-1)]})
+            parsed.append({type:"static", lines:tokens[index..(nextFunction-1)]})
           end
-          parsed.append(parse_next_function(tokens, nextFunction))
+          parsed.append({type:"function", function:parse_next_function(tokens, nextFunction)})
           index = nextFunction + 1
           nextFunction = find_index("function_body_start", tokens, index)
         end
         #rest of static
-        parsed.append({static:tokens.drop(index)})
+        parsed.append({type:"static", lines:tokens.drop(index)})
       end
 
 
@@ -58,14 +62,14 @@ module Fastlane
         function = {}
 
 
-        function[:human_name] = parse_function_name(tokens[start-1])
+        function[:human_name] = read_function_name(tokens[start-1])
         function[:definition] = parse_function_definition(tokens[start])
         function[:building_blocks] = parse_building_blocks(tokens[(start+1)..(stop-1)])
         function[:lines] = tokens
         return function
       end
 
-      def parse_function_name(line)
+      def read_function_name(line)
         return line[:value][/\/\/\s(.*)/, 1]
       end
       def parse_function_definition(line)
@@ -96,9 +100,12 @@ module Fastlane
           end
         end
 
-        function[:isExternal]  = !parsed_tokens.find_index("external").nil?
-        function[:return_type] = parsed_tokens.drop(find_last_index("return", parsed_tokens) + 1).map{|x| x[:value]}.reverse.drop(1).reverse.join(" ")
+        function[:isExternal] = !find_index("external",parsed_tokens,0).nil?
+        return_string_index_start = find_index("convention", parsed_tokens, 0)
+        return_string = parsed_tokens.drop(return_string_index_start + 1).reverse.drop(1).reverse.map{|x| x[:value]}.join(" ")
+        function[:return_type] = read_return_type(return_string)
         function[:value]  = line[:value]
+        return function
       end
 
       def parse_building_blocks(lines)
@@ -114,13 +121,32 @@ module Fastlane
         block = {}
 
         definition_index = find_index("bb_start", lines, 0)
-        # block[:index] = parse_block_number(lines[definition_index])
+        block[:index] = read_block_number(lines[definition_index])
         block[:comments] = lines.first(definition_index)
         block[:body] = lines.drop(definition_index)
         return block
       end
-      def parse_block_number(line)
+      def read_block_number(line)
         return line[:value][/bb(\d*)\(/, 1]
+      end
+      def read_return_type(return_definition)
+        return_began = false
+        brackets_level = 0
+        returnTypeChars = []
+        chars = return_definition.split("")
+        chars.zip(chars.drop(1)).each do |c,n|
+          if return_began
+            returnTypeChars.append(c)
+          elsif c == "("
+            brackets_level += 1
+          elsif c == ")"
+            brackets_level -= 1
+          elsif c == "-" && n == ">" && brackets_level == 0
+            return_began = true
+          end
+        end
+        # skip "> "
+        return returnTypeChars.drop(2).join("")
       end
 
 
