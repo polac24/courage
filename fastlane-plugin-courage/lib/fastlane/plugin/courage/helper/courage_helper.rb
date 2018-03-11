@@ -103,7 +103,7 @@ module Fastlane
         function[:isExternal] = !find_index("external",parsed_tokens,0).nil?
         return_string_index_start = find_index("convention", parsed_tokens, 0)
         return_string = parsed_tokens.drop(return_string_index_start + 1).reverse.drop(1).reverse.map{|x| x[:value]}.join(" ")
-        function[:return_type] = read_return_type(return_string)
+        function[:return_type] = parse_return_type(read_return_type(return_string))
         function[:value]  = line[:value]
         return function
       end
@@ -147,6 +147,10 @@ module Fastlane
         end
         # skip "> "
         return returnTypeChars.drop(2).join("")
+      end
+      def parse_return_type(return_type)
+        slimed_return_type = return_type.gsub(/@\S*\s/,'')
+        return slimed_return_type
       end
 
 

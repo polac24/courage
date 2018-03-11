@@ -98,6 +98,7 @@ if !buildCommands.empty?
           element = element.gsub(/\s-filelist\s(\S*?)\s/, ' ')
           element = element.gsub(/\s-primary-file\s(.*?\.swift)\s/, ' ')
           element = element.gsub(/\s-profile-coverage-mapping\s/, ' ')
+          element = element.gsub(/\s-profile-generate\s/, ' ')
           element = element.gsub(/\s(\S*?\.swift)\s/, ' ')
           element = all_swifts.reduce(element){ |prev, file| prev.sub(file, ' ') }
           my_swifts = all_swifts - [compilingFile]
