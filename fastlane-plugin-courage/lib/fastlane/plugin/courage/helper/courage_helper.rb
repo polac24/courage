@@ -15,10 +15,23 @@ module Fastlane
         parsed = parse(tokens)
 
         # puts parsed
-        parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
-        select{|d| !d[:isExternal]}.each {|definition|
-          puts definition
-        }
+        # parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
+        # select{|d| !d[:isExternal]}.each {|definition|
+        #   puts definition
+        # }
+
+        parsed.each do  |parse|
+          if parse[:type] == "static"
+            puts parse[:lines].map{|x| x[:value]}.join("\n")
+          elsif parse[:type] == "function"
+            puts parse[:function][:definition][:value]
+            puts parse[:function][:building_blocks].each do |bb|
+              puts bb[:comments]
+              puts bb[:index]
+              puts bb[:value].join("\n")
+            end
+          end 
+        end
       end
 
 
@@ -62,15 +75,15 @@ module Fastlane
         function = {}
 
 
-        function[:human_name] = read_function_name(tokens[start-1])
+        function[:human_name] = parse_function_name(tokens[start-1])
         function[:definition] = parse_function_definition(tokens[start])
         function[:building_blocks] = parse_building_blocks(tokens[(start+1)..(stop-1)])
         function[:lines] = tokens
         return function
       end
 
-      def read_function_name(line)
-        return line[:value][/\/\/\s(.*)/, 1]
+      def parse_function_name(line)
+        return {name: line[:value][/\/\/\s(.*)/, 1], value:line[:value]}
       end
       def parse_function_definition(line)
         parsed_tokens = []
@@ -116,18 +129,19 @@ module Fastlane
           parsed_blocks.append(parse_building_block(lines[index..end_bb]))
           index = end_bb + 1
         end
+        parsed_blocks
       end
       def parse_building_block(lines)
         block = {}
 
         definition_index = find_index("bb_start", lines, 0)
-        block[:index] = read_block_number(lines[definition_index])
+        block[:index] = parse_block_number(lines[definition_index])
         block[:comments] = lines.first(definition_index)
-        block[:body] = lines.drop(definition_index)
+        block[:value] = lines.drop(definition_index)
         return block
       end
-      def read_block_number(line)
-        return line[:value][/bb(\d*)\(/, 1]
+      def parse_block_number(line)
+        return {index:line[:value][/bb(\d*)\(/, 1], value:line}
       end
       def read_return_type(return_definition)
         return_began = false
