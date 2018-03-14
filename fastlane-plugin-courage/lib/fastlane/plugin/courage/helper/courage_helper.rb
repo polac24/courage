@@ -22,14 +22,16 @@ module Fastlane
 
         parsed.each do  |parse|
           if parse[:type] == "static"
-            puts parse[:lines].map{|x| x[:value]}.join("\n")
+            parse[:lines].map{|x| puts x[:value]}
           elsif parse[:type] == "function"
+            puts parse[:function][:human_name][:value]
             puts parse[:function][:definition][:value]
-            puts parse[:function][:building_blocks].each do |bb|
-              puts bb[:comments]
-              puts bb[:index]
-              puts bb[:value].join("\n")
+            parse[:function][:building_blocks].each do |bb|
+              bb[:comments].each{|x| puts x[:value]}
+              puts bb[:index][:value][:value]
+              bb[:value].map{|x| puts x[:value]}
             end
+            puts parse[:function][:end][:value]
           end 
         end
       end
@@ -40,11 +42,11 @@ module Fastlane
         index = 0
         nextFunction = find_index("function_body_start", tokens, index)
         until nextFunction.nil?
-          if nextFunction != index
-            parsed.append({type:"static", lines:tokens[index..(nextFunction-1)]})
+          if nextFunction  > (index + 2) 
+            parsed.append({type:"static", lines:tokens[index..(nextFunction-2)]})
           end
           parsed.append({type:"function", function:parse_next_function(tokens, nextFunction)})
-          index = nextFunction + 1
+          index = find_index("end", tokens, nextFunction) + 1
           nextFunction = find_index("function_body_start", tokens, index)
         end
         #rest of static
@@ -78,6 +80,7 @@ module Fastlane
         function[:human_name] = parse_function_name(tokens[start-1])
         function[:definition] = parse_function_definition(tokens[start])
         function[:building_blocks] = parse_building_blocks(tokens[(start+1)..(stop-1)])
+        function[:end] = tokens[stop]
         function[:lines] = tokens
         return function
       end
@@ -137,7 +140,7 @@ module Fastlane
         definition_index = find_index("bb_start", lines, 0)
         block[:index] = parse_block_number(lines[definition_index])
         block[:comments] = lines.first(definition_index)
-        block[:value] = lines.drop(definition_index)
+        block[:value] = lines.drop(definition_index+1)
         return block
       end
       def parse_block_number(line)
