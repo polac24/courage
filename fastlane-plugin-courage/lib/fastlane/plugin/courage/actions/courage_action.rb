@@ -7,7 +7,7 @@ module Fastlane
       def self.run(params)
 
         if  params[:sil_file] 
-          Helper::SILParser.new(params[:sil_file])
+          Helper::SILParser.new(params[:sil_file]).print($stdout)
           return 
         end
         UI.message("The courage plugin is working!")
@@ -161,7 +161,8 @@ if !buildCommands.empty?
           output = file[:oFile]
           `mv #{output} #{output}_`
           # Mutate - TD
-          `cp #{file[:sil_reference]}  #{file[:mutationSill]}`
+          # `cp #{file[:sil_reference]}  #{file[:mutationSill]}`
+          Helper::SILParser.new(file[:sil_reference]).printToFile(file[:mutationSill])
 
           begin
           # Build after mutation

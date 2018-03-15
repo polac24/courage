@@ -7,32 +7,47 @@ module Fastlane
     class SILParser
       # class methods that you define here become available in your action
       # as `Helper::SILParser.your_method`
-      #
       def initialize(path)
         @path = path
 
-        tokens = tokenize(path)
-        parsed = parse(tokens)
+        @tokens = tokenize(@path)
+        @parsed = parse(@tokens)
 
         # puts parsed
         # parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
         # select{|d| !d[:isExternal]}.each {|definition|
         #   puts definition
         # }
+      end
 
-        parsed.each do  |parse|
+
+      def printToFile(fileName)
+        output = File.open( fileName,"w" )
+        print(output)
+        output.close
+      end
+
+      def print(output)
+        @parsed.each do  |parse|
+          
+
           if parse[:type] == "static"
-            parse[:lines].map{|x| puts x[:value]}
-          elsif parse[:type] == "function"
-            puts parse[:function][:human_name][:value]
-            puts parse[:function][:definition][:value]
+            parse[:lines].map{|x| output.puts x[:value]}
+          elsif parse[:type] == "function" && !parse[:function][:definition][:isExternal]
+            output.puts parse[:function][:human_name][:value]
+            output.puts parse[:function][:definition][:value]
             parse[:function][:building_blocks].each do |bb|
-              bb[:comments].each{|x| puts x[:value]}
-              puts bb[:index][:value][:value]
-              bb[:value].map{|x| puts x[:value]}
+              bb[:comments].each{|x| output.puts x[:value]}
+              output.puts bb[:index][:value][:value]
+              bb[:value].map{|x| output.puts x[:value]}
             end
-            puts parse[:function][:end][:value]
-          end 
+            output.puts parse[:function][:end][:value]
+            output.puts ""
+          elsif parse[:type] == "function"
+            ## copy immediatelly
+            parse[:function][:lines].each{|x| output.puts x[:value]}
+            output.puts ""
+          end
         end
       end
 
@@ -46,7 +61,7 @@ module Fastlane
             parsed.append({type:"static", lines:tokens[index..(nextFunction-2)]})
           end
           parsed.append({type:"function", function:parse_next_function(tokens, nextFunction)})
-          index = find_index("end", tokens, nextFunction) + 1
+          index = find_index("end", tokens, nextFunction) + 2
           nextFunction = find_index("function_body_start", tokens, index)
         end
         #rest of static
@@ -81,7 +96,7 @@ module Fastlane
         function[:definition] = parse_function_definition(tokens[start])
         function[:building_blocks] = parse_building_blocks(tokens[(start+1)..(stop-1)])
         function[:end] = tokens[stop]
-        function[:lines] = tokens
+        function[:lines] = tokens[start-1..stop]
         return function
       end
 
