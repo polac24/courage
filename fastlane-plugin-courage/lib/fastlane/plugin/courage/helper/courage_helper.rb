@@ -4,14 +4,169 @@ module Fastlane
   UI = FastlaneCore::UI unless Fastlane.const_defined?("UI")
 
   module Helper
+    class SILBlock
+      def initialize(lines)
+        @lines = lines
+        @type = "static"
+      end
+      def print(output)
+        @lines.each{|x| output.puts x[:value]}
+      end
+      def type
+        @type
+      end
+      def self.find_index(type, tokens, fromIndex)
+        i = tokens.drop(fromIndex).index { |token| token[:type] == type} 
+        if i.nil?
+          return nil
+        end
+        return i + fromIndex
+      end
+    end
+
+    class SILFunction < SILBlock
+      def initialize(lines)
+        super(lines)
+        @type = "function"
+
+        @human_name = SILFunctionComment.new(lines[0][:value])
+        @definition = SILFunctionDefinition.new(lines[1][:value])
+        @building_blocks = parse_building_blocks(lines.drop(2)[0...-1])
+        @end = lines.last
+      end
+      def print(output)
+        @human_name.print(output)
+        @definition.print(output)
+        @building_blocks.each {|x| x.print(output)}
+        output.print(@end)
+        output.puts ""
+      end
+
+      private def parse_function_name(line)
+        return {name: line[:value][/\/\/\s(.*)/, 1], value:line[:value]}
+      end
+      private def parse_building_blocks(lines)
+        parsed_blocks = []
+        index = 0
+        while index < (lines.count-1) do
+          end_bb = self.class.find_index("empty",lines, index) || (lines.count-1)
+          parsed_blocks.append(SILBuildingBlock.new(lines[index..end_bb]))
+          index = end_bb + 1
+        end
+        parsed_blocks
+      end
+    end
+
+    class SILFunctionComment < SILBlock
+      def initialize(line)
+        super([line])
+        @type = "function_comment"
+        @name = [/\/\/\s(.*)/, 1]
+      end
+    end
+
+    class SILFunctionDefinition < SILBlock
+      def initialize(line)
+        super([line])
+        @type = "function_definition"
+
+        parsed_tokens = []
+        function = {}
+        @isExternal = false
+
+        return_string_index_start = 0
+        tokens = line.split(' ')
+        tokens.each_with_index do |token, index| 
+          if token.start_with?("$@convention")
+            parsed_tokens.append({type:"convention", value:token[/$@convention\(.*\)/, 1]})
+            return_string_index_start = index
+          elsif token == "sil"
+            ## skip
+            parsed_tokens.append({type:"sil", value:token})
+          elsif token.start_with?("[")
+            parsed_tokens.append({type:"attribute", value:token[/[(.*)]]/, 1]})
+          elsif token == ":"
+            parsed_tokens.append({type:"separator", value:token})
+          elsif token.start_with?("@$")
+            parsed_tokens.append({type:"name", value:token})
+          elsif token.start_with?("->")
+            parsed_tokens.append({type:"return", value:token})
+          elsif token.end_with?("_external")
+            @isExternal = true
+            parsed_tokens.append({type:"external", value:token})
+          elsif token.end_with?("{")
+            parsed_tokens.append({type:"finish", value:token})
+          else
+            parsed_tokens.append({type:"other", value:token})
+          end
+        end
+        return_string = parsed_tokens.drop(return_string_index_start + 1)[0...-1].map{|x| x[:value]}.join(" ")
+        @return_type = parse_return_type(read_return_type(return_string))
+        return function
+      end
+      private def optional_wrapper
+        return @return_type[/^Optional<(.*)>$/, 1]
+      end 
+      private def optional_nofunction_wrapper
+        return @return_type[/^Optional<(((?!->).)*)>$/, 1]
+      end 
+      private def parse_return_type(return_type)
+        return return_type.gsub(/@\S*\s/,'')
+      end
+      private def read_return_type(return_definition)
+        return_began = false
+        brackets_level = 0
+        returnTypeChars = []
+        chars = return_definition.split("")
+        chars.zip(chars.drop(1)).each do |c,n|
+          if return_began
+            returnTypeChars.append(c)
+          elsif c == "("
+            brackets_level += 1
+          elsif c == ")"
+            brackets_level -= 1
+          elsif c == "-" && n == ">" && brackets_level == 0
+            return_began = true
+          end
+        end
+        # skip "> "
+        return returnTypeChars.drop(2).join("")
+      end
+    end
+
+    class SILBuildingBlock < SILBlock
+      def initialize(lines)
+        super(lines)
+
+        definition_index = self.class.find_index("bb_start", lines, 0)
+        @comments = lines.first(definition_index)
+        @definition = lines[definition_index]
+        @index = parse_block_number(lines[definition_index])
+        @arguments_count = parse_block_arguments(lines[definition_index][:value])
+        @body = lines.drop(definition_index+1)
+      end
+
+      def print(output)
+        @comments.each{|x| output.puts x[:value]}
+        output.puts(@definition)
+        @body.map{|x| output.puts x[:value]}
+      end
+      private def parse_block_number(line)
+        return [/bb(\d*)/, 1]
+      end
+      private def parse_block_arguments(line)
+        return line.scan(/%(\d*)/)
+      end
+    end
+
     class SILParser
       # class methods that you define here become available in your action
       # as `Helper::SILParser.your_method`
       def initialize(path)
         @path = path
 
-        @tokens = tokenize(@path)
-        @parsed = parse(@tokens)
+        tokens = tokenize(@path)
+        @parsed = parse(tokens)
 
         # puts parsed
         # @parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
@@ -30,10 +185,11 @@ module Fastlane
       def print(output)
         @parsed.each do  |parse|
           
-
-          if parse[:type] == "static"
-            parse[:lines].map{|x| output.puts x[:value]}
-          elsif parse[:type] == "function" && !parse[:function][:definition][:isExternal]
+          if parse.type == "static"
+            parse.print(output)
+          elsif parse.type == "function" && !parse.definition.isExternal
+            parse.print(output)
+=begin
             output.puts parse[:function][:human_name][:value]
             output.puts parse[:function][:definition][:value]
             parse[:function][:building_blocks].each do |bb|
@@ -58,7 +214,9 @@ module Fastlane
             ## copy immediatelly
             parse[:function][:lines].each{|x| output.puts x[:value]}
             output.puts ""
+=end
           end
+
         end
       end
 
@@ -66,136 +224,21 @@ module Fastlane
       def parse(tokens)
         parsed = []
         index = 0
-        nextFunction = find_index("function_body_start", tokens, index)
-        until nextFunction.nil?
+        nextFunction = SILBlock.find_index("function_body_start", tokens, index).to_i - 1
+        until nextFunction > 0
           if nextFunction  > (index + 2) 
-            parsed.append({type:"static", lines:tokens[index..(nextFunction-2)]})
+            # parsed.append({type:"static", lines:tokens[index..(nextFunction-2)]})
+            parsed.append(SILBlock.new(tokens[index..(nextFunction-2)]))
           end
-          parsed.append({type:"function", function:parse_next_function(tokens, nextFunction)})
-          index = find_index("end", tokens, nextFunction) + 2
-          nextFunction = find_index("function_body_start", tokens, index)
+          #parsed.append({type:"function", function:parse_next_function(tokens, nextFunction - 1)})
+          index = SILBlock.find_index("end", tokens, nextFunction)
+          parsed.append(SILFunction.new(tokens[nextFunction...index]))
+
+          nextFunction = SILBlock.find_index("function_body_start", tokens, index).to_i - 1
         end
         #rest of static
-        parsed.append({type:"static", lines:tokens.drop(index)})
+        parsed.append(SILBlock.new(tokens.drop(index)))
       end
-
-
-      def parse_next_function(tokens, start_index)
-        end_index = find_index("end", tokens, start_index)
-
-        return parse_function(tokens, start_index, end_index)
-      end
-
-      def find_index(type, tokens, fromIndex)
-        i = tokens.drop(fromIndex).index { |token| token[:type] == type} 
-        if i.nil?
-          return nil
-        end
-        return i + fromIndex
-      end
-
-      def find_last_index(type, tokens)
-        return reversed_index = tokens.rindex { |token| token[:type] == type}
-      end
-
-
-      def parse_function(tokens, start, stop)
-        function = {}
-
-
-        function[:human_name] = parse_function_name(tokens[start-1])
-        function[:definition] = parse_function_definition(tokens[start])
-        function[:building_blocks] = parse_building_blocks(tokens[(start+1)..(stop-1)])
-        function[:end] = tokens[stop]
-        function[:lines] = tokens[start-1..stop]
-        return function
-      end
-
-      def parse_function_name(line)
-        return {name: line[:value][/\/\/\s(.*)/, 1], value:line[:value]}
-      end
-      def parse_function_definition(line)
-        parsed_tokens = []
-        function = {}
-
-        tokens = line[:value].split(' ')
-        tokens.each do |token| 
-          if token.start_with?("$@convention")
-            parsed_tokens.append({type:"convention", value:token[/$@convention\(.*\)/, 1]})
-          elsif token == "sil"
-            ## skip
-            parsed_tokens.append({type:"sil", value:token})
-          elsif token.start_with?("[")
-            parsed_tokens.append({type:"attribute", value:token[/[(.*)]]/, 1]})
-          elsif token == ":"
-            parsed_tokens.append({type:"separator", value:token})
-          elsif token.start_with?("@$")
-            parsed_tokens.append({type:"name", value:token})
-          elsif token.start_with?("->")
-            parsed_tokens.append({type:"return", value:token})
-          elsif token.end_with?("_external")
-            parsed_tokens.append({type:"external", value:token})
-          elsif token.end_with?("{")
-            parsed_tokens.append({type:"finish", value:token})
-          else
-            parsed_tokens.append({type:"other", value:token})
-          end
-        end
-
-        function[:isExternal] = !find_index("external",parsed_tokens,0).nil?
-        return_string_index_start = find_index("convention", parsed_tokens, 0)
-        return_string = parsed_tokens.drop(return_string_index_start + 1).reverse.drop(1).reverse.map{|x| x[:value]}.join(" ")
-        function[:return_type] = parse_return_type(read_return_type(return_string))
-        function[:value]  = line[:value]
-        return function
-      end
-
-      def parse_building_blocks(lines)
-        parsed_blocks = []
-        index = 0
-        while index < (lines.count-1) do
-          end_bb = find_index("empty",lines, index) || (lines.count-1)
-          parsed_blocks.append(parse_building_block(lines[index..end_bb]))
-          index = end_bb + 1
-        end
-        parsed_blocks
-      end
-      def parse_building_block(lines)
-        block = {}
-
-        definition_index = find_index("bb_start", lines, 0)
-        block[:index] = parse_block_number(lines[definition_index])
-        block[:comments] = lines.first(definition_index)
-        block[:value] = lines.drop(definition_index+1)
-        return block
-      end
-      def parse_block_number(line)
-        return {index:line[:value][/bb(\d*)/, 1], value:line, arguments:line[:value].scan(/%(\d*)/)}
-      end
-      def read_return_type(return_definition)
-        return_began = false
-        brackets_level = 0
-        returnTypeChars = []
-        chars = return_definition.split("")
-        chars.zip(chars.drop(1)).each do |c,n|
-          if return_began
-            returnTypeChars.append(c)
-          elsif c == "("
-            brackets_level += 1
-          elsif c == ")"
-            brackets_level -= 1
-          elsif c == "-" && n == ">" && brackets_level == 0
-            return_began = true
-          end
-        end
-        # skip "> "
-        return returnTypeChars.drop(2).join("")
-      end
-      def parse_return_type(return_type)
-        slimed_return_type = return_type.gsub(/@\S*\s/,'')
-        return slimed_return_type
-      end
-
 
       def tokenize(path)
         number = 0
