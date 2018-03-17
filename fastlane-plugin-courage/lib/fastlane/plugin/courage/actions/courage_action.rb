@@ -181,13 +181,17 @@ if !buildCommands.empty?
         project = "-project #{params[:project]}"
         project = "-workspace #{params[:workspace]}" if params[:workspace]
 
-          test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
+          #test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \"platform=iOS Simulator,name=#{params[:device]}\""
+          # any "Fatal error"
+          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
           begin
           FastlaneCore::CommandExecutor.execute(command: test_command,
                                           print_all: false,
                                       print_command: true)
+          UI.message("Mutation not caught!")
           mutation_failed.push(file)
             rescue => testEx
+              UI.message("Mutation caught!")
               mutation_succeeded.push(file)
             end
 

@@ -14,7 +14,7 @@ module Fastlane
         @parsed = parse(@tokens)
 
         # puts parsed
-        # parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
+        # @parsed.select {|p| p[:type] == "function"}.map{|f| f[:function][:definition]}.
         # select{|d| !d[:isExternal]}.each {|definition|
         #   puts definition
         # }
@@ -39,6 +39,17 @@ module Fastlane
             parse[:function][:building_blocks].each do |bb|
               bb[:comments].each{|x| output.puts x[:value]}
               output.puts bb[:index][:value][:value]
+              # not apply for optionals of functions
+              if type = parse[:function][:definition][:return_type][/^Optional<(((?!->).)*)>$/, 1]
+                arguments = parse[:function][:building_blocks][0][:index][:arguments].size
+                output.puts "  %#{arguments} = alloc_stack $Optional<#{type}>              // users: %#{arguments+1}, %#{arguments+3}, %#{arguments+4}"
+                output.puts "  inject_enum_addr %#{arguments} : $*Optional<#{type}>, #Optional.none!enumelt // id: %#{arguments+1}"
+                output.puts "  %#{arguments+2} = tuple ()"
+                output.puts "  %#{arguments+3} = load %#{arguments} : $*Optional<#{type}>               // user: %#{arguments+5}"
+                output.puts "  dealloc_stack %#{arguments} : $*Optional<#{type}>           // id: %#{arguments+4}"
+                output.puts "  return %#{arguments+3} : $Optional<#{type}>                   // id: %#{arguments+5}"
+                break
+              end
               bb[:value].map{|x| output.puts x[:value]}
             end
             output.puts parse[:function][:end][:value]
@@ -159,7 +170,7 @@ module Fastlane
         return block
       end
       def parse_block_number(line)
-        return {index:line[:value][/bb(\d*)\(/, 1], value:line}
+        return {index:line[:value][/bb(\d*)/, 1], value:line, arguments:line[:value].scan(/%(\d*)/)}
       end
       def read_return_type(return_definition)
         return_began = false
