@@ -7,7 +7,9 @@ module Fastlane
       def self.run(params)
 
         if  params[:sil_file] 
-          Helper::SILParser.new(params[:sil_file]).print($stdout)
+          #Helper::SILParser.new(params[:sil_file]).print($stdout)
+          parsed = Helper::SILParser.new(params[:sil_file]).parsed
+          Helper::SILMutations.new(parsed)
           return 
         end
         UI.message("The courage plugin is working!")
