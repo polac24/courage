@@ -19,8 +19,23 @@ module Fastlane
       def mutationsCount
         @mutations.size
       end
-      def printMutation(index, output)
-        # TODO: print blocks with single mutation
+      def print_mutation_to_file(index, fileName)
+        output = File.open(fileName,"w" )
+        mutation_summary = print_mutation(index, output)
+        output.close
+        mutation_summary
+      end
+      def print_mutation(index, output)
+        mutation = @mutations[index]
+        @blocks.each do  |parse|
+          if parse.type == "function" && parse.definition == mutation.definition
+            # mutate
+            mutation.print(output)
+          else
+            parse.print(output)
+          end
+        end
+        mutation.to_s
       end
     end
 
@@ -45,6 +60,7 @@ module Fastlane
       def print(output)
         @human_name.print(output)
         @definition.print(output)
+        @building_blocks[0].print_head(output)
         print_empty_bb(@argumentsCount, output)
         output.puts (@end[:value])
         output.puts ""
@@ -74,15 +90,18 @@ module Fastlane
       def print(output)
         @human_name.print(output)
         @definition.print(output)
-        print_return_nil_bb(@argumentsCount, @generic_optional_type, output)
+        @building_blocks[0].print_head(output)
+        print_empty_bb(@argumentsCount, @generic_optional_type, output)
         output.puts (@end[:value])
         output.puts ""
       end
       private def print_empty_bb(startin_index, type, output)
-         output.puts ("  %#{startin_index} = integer_literal $Builtin.Int64, 1          // user: %#{startin_index+1}")
-         output.puts ("  %#{startin_index+1} = struct $#{type} (%#{startin_index} : $Builtin.Int64)          // user: %#{startin_index+2}")
-         output.puts ("  %#{startin_index+2} = enum $Optional<#{type}>, #Optional.some!enumelt.1, %#{startin_index+1} : $#{type} // user: %#{startin_index+3}")
-         output.puts ("  return %#{startin_index+2} : $Optional<#{type}>                      // id: %#{startin_index+3}")
+         output.puts ("  %#{startin_index} = alloc_stack $Optional<#{type}>              // users: %#{startin_index+1}, %#{startin_index+2}, %#{startin_index+3}")
+         output.puts ("  inject_enum_addr %#{startin_index} : $*Optional<#{type}>, #Optional.none!enumelt // id: %#{startin_index+1}")
+         output.puts ("  %#{startin_index+2} = tuple ()")
+         output.puts ("  %#{startin_index+3} = load %#{startin_index} : $*Optional<#{type}>               // user: %#{startin_index+5}")
+         output.puts ("  dealloc_stack %#{startin_index} : $*Optional<#{type}>           // id: %#{startin_index+4}")
+         output.puts ("  return %#{startin_index+3} : $Optional<#{type}>                   // id: %#{startin_index+5}")
       end
       def to_s
         return "Return nil of #{@human_name}"

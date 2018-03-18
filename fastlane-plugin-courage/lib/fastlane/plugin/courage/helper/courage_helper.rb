@@ -30,14 +30,7 @@ module Fastlane
 
       def print(output)
         @parsed.each do  |parse|
-          if parse.type == "static"
-             parse.print(output)
-          elsif parse.type == "function" && !parse.definition.isExternal && parse.definition.return_type.isGeneric && parse.definition.return_type.type.type == "Optional" && !parse.definition.return_type.hasGenericClosure
-            parse.print(output)
-          else
-            parse.print(output)
-          end
-
+          parse.print(output)
         end
       end
 

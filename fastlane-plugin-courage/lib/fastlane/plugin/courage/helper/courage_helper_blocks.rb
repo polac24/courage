@@ -67,9 +67,9 @@ module Fastlane
     class SILFunctionComment < SILBlock
       def initialize(line_obj)
         super([line_obj])
-        line = line_obj[:value]
+        @line = line_obj[:value]
         @type = "function_comment"
-        @name = line[/\/\/\s(.*)/, 1]
+        @name = @line[/\/\/\s(.*)/, 1]
       end
       def to_s
         @name
@@ -80,7 +80,7 @@ module Fastlane
       def initialize(line_obj)
         super([line_obj])
         @type = "function_definition"
-        line = line_obj[:value]
+        @line = line_obj[:value]
         parsed_tokens = []
         function = {}
         @isExternal = false
@@ -88,9 +88,9 @@ module Fastlane
         @attributes = []
 
         return_string_index_start = 0
-        convention_index = line.index(": $@convention(")
+        convention_index = @line.index(": $@convention(")
 
-        tokens_definition = line[0..(convention_index-1)].split(' ')
+        tokens_definition = @line[0..(convention_index-1)].split(' ')
         tokens_definition.each_with_index do |token, index| 
           if token == "sil"
             parsed_tokens.append({type:"sil", value:token})
@@ -106,7 +106,7 @@ module Fastlane
             parsed_tokens.append({type:"other", value:token})
           end
         end
-        second_part = line[convention_index + 2...line.length]
+        second_part = @line[convention_index + 2...@line.length]
         return_string=second_part[(second_part.index(")")+1)..(second_part.index("{")-1)]
 
         argument_type, return_type = Type.read_function_type(parse_return_type(return_string))
@@ -126,6 +126,12 @@ module Fastlane
       def attributes
         @attributes
       end
+      def line
+        @line
+      end
+      def ==(o)
+        o.class == self.class && o.line == line
+      end
       private def parse_return_type(return_type)
         return return_type.gsub(/@\S*\s/,'')
       end
@@ -142,16 +148,19 @@ module Fastlane
         @comments = lines.first(definition_index)
         @definition = lines[definition_index]
         @index = parse_block_number(lines[definition_index])
-        @arguments_count = parse_block_arguments(lines[definition_index][:value])
+        @arguments_count = parse_block_arguments(lines[definition_index][:value]).count
         @body = lines.drop(definition_index+1)
       end
       def arguments_count
         @arguments_count
       end
       def print(output)
+        print_head(output)
+        @body.map{|x| output.puts x[:value]}
+      end
+      def print_head(output)
         @comments.each{|x| output.puts x[:value]}
         output.puts(@definition[:value])
-        @body.map{|x| output.puts x[:value]}
       end
       private def parse_block_number(line)
         return [/bb(\d*)/, 1]

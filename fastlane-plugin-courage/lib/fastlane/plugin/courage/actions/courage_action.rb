@@ -9,7 +9,8 @@ module Fastlane
         if  params[:sil_file] 
           #Helper::SILParser.new(params[:sil_file]).print($stdout)
           parsed = Helper::SILParser.new(params[:sil_file]).parsed
-          Helper::SILMutations.new(parsed)
+          mutations = Helper::SILMutations.new(parsed)
+          mutations.print_mutation(0, $stdout)
           return 
         end
         UI.message("The courage plugin is working!")
@@ -164,51 +165,61 @@ if !buildCommands.empty?
           `mv #{output} #{output}_`
           # Mutate - TD
           # `cp #{file[:sil_reference]}  #{file[:mutationSill]}`
-          Helper::SILParser.new(file[:sil_reference]).printToFile(file[:mutationSill])
-
-          begin
-          # Build after mutation
-          FastlaneCore::CommandExecutor.execute(command: command,
-                                          print_all: true,
-                                      print_command: true
-                                      )
-
-          # Link after mutation
-          FastlaneCore::CommandExecutor.execute(command: linkCommand,
-                                          print_all: true,
-                                      print_command: true
-                                      )
+          parsed = Helper::SILParser.new(file[:sil_reference])
+          parsedBlocks = parsed.parsed
+          mutations = Helper::SILMutations.new(parsedBlocks)
 
 
-        project = "-project #{params[:project]}"
-        project = "-workspace #{params[:workspace]}" if params[:workspace]
+          if mutations.mutationsCount == 0
+            next
+          end
+          #.printToFile(file[:mutationSill])
+          for i in 0..(mutations.mutationsCount - 1)
+            mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
+            begin
+            # Build after mutation
+            FastlaneCore::CommandExecutor.execute(command: command,
+                                            print_all: true,
+                                        print_command: true
+                                        )
 
-          #test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \"platform=iOS Simulator,name=#{params[:device]}\""
-          # any "Fatal error"
-          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
-          begin
-          FastlaneCore::CommandExecutor.execute(command: test_command,
-                                          print_all: false,
-                                      print_command: true)
-          UI.message("Mutation not caught!")
-          mutation_failed.push(file)
-            rescue => testEx
-              UI.message("Mutation caught!")
-              mutation_succeeded.push(file)
+            # Link after mutation
+            FastlaneCore::CommandExecutor.execute(command: linkCommand,
+                                            print_all: true,
+                                        print_command: true
+                                        )
+
+
+            project = "-project #{params[:project]}"
+            project = "-workspace #{params[:workspace]}" if params[:workspace]
+
+            #test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \"platform=iOS Simulator,name=#{params[:device]}\""
+            # any "Fatal error"
+            test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
+            begin
+            FastlaneCore::CommandExecutor.execute(command: test_command,
+                                            print_all: false,
+                                        print_command: true)
+            UI.error("Mutation not caught: #{mutation_name}!")
+            mutation_failed.push(file)
+              rescue => testEx
+                UI.success("Mutation caught: #{mutation_name}!")
+                mutation_succeeded.push(file)
+              end
+
+           rescue => ex
+            mutation_skipped = file
             end
-
-         rescue => ex
-          mutation_skipped = file
           end
           `mv #{output}_ #{output}`
         end
         UI.message("-----------")
         UI.message("Succeeded:")
-        UI.message("#{mutation_succeeded}")
+        UI.message("#{mutation_succeeded.map{|a| a[:sil_reference]}}")
         UI.message("Failed:")
         UI.message("#{mutation_failed.map{|a| a[:sil_reference]}}")
         UI.message("Skipped:")
-        UI.message("#{mutation_skipped}")
+        UI.message("#{mutation_skipped.map{|a| a[:sil_reference]}}")
         UI.message("-----------")
       end
 
