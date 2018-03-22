@@ -1,0 +1,110 @@
+// _ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)
+sil public_external [serialized] @$Ss22_ContiguousArrayBufferV19_uninitializedCount15minimumCapacityAByxGSi_SitcfC : $@convention(method) <Element> (Int, Int, @thin _ContiguousArrayBuffer<Element>.Type) -> @owned _ContiguousArrayBuffer<Element> {
+// %0                                             // users: %60, %3
+// %1                                             // user: %4
+bb0(%0 : $Int, %1 : $Int, %2 : $@thin _ContiguousArrayBuffer<Element>.Type):
+  %3 = struct_extract %0 : $Int, #Int._value      // users: %8, %5
+  %4 = struct_extract %1 : $Int, #Int._value      // users: %7, %5
+  %5 = builtin "cmp_slt_Int64"(%4 : $Builtin.Int64, %3 : $Builtin.Int64) : $Builtin.Int1 // user: %6
+  cond_br %5, bb2, bb1                            // id: %6
+
+bb1:                                              // Preds: bb0
+  br bb3(%4 : $Builtin.Int64)                     // id: %7
+
+bb2:                                              // Preds: bb0
+  br bb3(%3 : $Builtin.Int64)                     // id: %8
+
+// %9                                             // users: %13, %11
+bb3(%9 : $Builtin.Int64):                         // Preds: bb2 bb1
+  %10 = integer_literal $Builtin.Int64, 0         // users: %55, %11
+  %11 = builtin "cmp_eq_Int64"(%9 : $Builtin.Int64, %10 : $Builtin.Int64) : $Builtin.Int1 // user: %12
+  cond_br %11, bb13, bb4                          // id: %12
+
+bb4:                                              // Preds: bb3
+  %13 = builtin "truncOrBitCast_Int64_Word"(%9 : $Builtin.Int64) : $Builtin.Word // user: %14
+  %14 = alloc_ref [tail_elems $Element * %13 : $Builtin.Word] $_ContiguousArrayStorage<Element> // users: %64, %47, %43, %38, %15
+  %15 = upcast %14 : $_ContiguousArrayStorage<Element> to $_ContiguousArrayStorageBase // users: %65, %62, %24, %16
+  %16 = ref_to_raw_pointer %15 : $_ContiguousArrayStorageBase to $Builtin.RawPointer // users: %22, %17
+  %17 = struct $UnsafeRawPointer (%16 : $Builtin.RawPointer) // user: %19
+  // function_ref _stdlib_malloc_size
+  %18 = function_ref @_stdlib_malloc_size : $@convention(c) (UnsafeRawPointer) -> Int // user: %19
+  %19 = apply %18(%17) : $@convention(c) (UnsafeRawPointer) -> Int // user: %20
+  %20 = struct_extract %19 : $Int, #Int._value    // user: %21
+  %21 = builtin "truncOrBitCast_Int64_Word"(%20 : $Builtin.Int64) : $Builtin.Word // user: %22
+  %22 = index_raw_pointer %16 : $Builtin.RawPointer, %21 : $Builtin.Word // user: %23
+  %23 = struct $UnsafeMutablePointer<Element> (%22 : $Builtin.RawPointer) // user: %28
+  %24 = ref_tail_addr %15 : $_ContiguousArrayStorageBase, $Element // user: %25
+  %25 = address_to_pointer %24 : $*Element to $Builtin.RawPointer // user: %26
+  %26 = struct $UnsafeMutablePointer<Element> (%25 : $Builtin.RawPointer) // user: %28
+  // function_ref UnsafeMutablePointer.distance(to:)
+  %27 = function_ref @$SSp8distance2toSiSpyxG_tF : $@convention(method) <τ_0_0> (UnsafeMutablePointer<τ_0_0>, UnsafeMutablePointer<τ_0_0>) -> Int // user: %28
+  %28 = apply %27<Element>(%23, %26) : $@convention(method) <τ_0_0> (UnsafeMutablePointer<τ_0_0>, UnsafeMutablePointer<τ_0_0>) -> Int // user: %50
+  %29 = metatype $@thick Element.Type             // users: %39, %30
+  %30 = builtin "canBeClass"<Element>(%29 : $@thick Element.Type) : $Builtin.Int8 // users: %35, %32
+  %31 = integer_literal $Builtin.Int8, 0          // user: %32
+  %32 = builtin "cmp_eq_Int8"(%30 : $Builtin.Int8, %31 : $Builtin.Int8) : $Builtin.Int1 // user: %33
+  cond_br %32, bb8, bb5                           // id: %33
+
+bb5:                                              // Preds: bb4
+  %34 = integer_literal $Builtin.Int8, 1          // user: %35
+  %35 = builtin "cmp_eq_Int8"(%30 : $Builtin.Int8, %34 : $Builtin.Int8) : $Builtin.Int1 // user: %36
+  cond_br %35, bb7, bb6                           // id: %36
+
+bb6:                                              // Preds: bb5
+  // function_ref _swift_isClassOrObjCExistentialType
+  %37 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %39
+  strong_retain %14 : $_ContiguousArrayStorage<Element> // id: %38
+  %39 = apply %37<Element>(%29) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %40
+  br bb9(%39 : $Bool)                             // id: %40
+
+bb7:                                              // Preds: bb5
+  %41 = integer_literal $Builtin.Int1, -1         // user: %42
+  %42 = struct $Bool (%41 : $Builtin.Int1)        // user: %44
+  strong_retain %14 : $_ContiguousArrayStorage<Element> // id: %43
+  br bb9(%42 : $Bool)                             // id: %44
+
+bb8:                                              // Preds: bb4
+  %45 = integer_literal $Builtin.Int1, 0          // user: %46
+  %46 = struct $Bool (%45 : $Builtin.Int1)        // user: %48
+  strong_retain %14 : $_ContiguousArrayStorage<Element> // id: %47
+  br bb9(%46 : $Bool)                             // id: %48
+
+// %49                                            // user: %53
+bb9(%49 : $Bool):                                 // Preds: bb8 bb7 bb6
+  %50 = struct_extract %28 : $Int, #Int._value    // user: %52
+  %51 = integer_literal $Builtin.Int64, 1         // users: %56, %52
+  %52 = builtin "shl_Int64"(%50 : $Builtin.Int64, %51 : $Builtin.Int64) : $Builtin.Int64 // user: %58
+  %53 = struct_extract %49 : $Bool, #Bool._value  // user: %54
+  cond_br %53, bb11, bb10                         // id: %54
+
+bb10:                                             // Preds: bb9
+  br bb12(%10 : $Builtin.Int64)                   // id: %55
+
+bb11:                                             // Preds: bb9
+  br bb12(%51 : $Builtin.Int64)                   // id: %56
+
+// %57                                            // user: %58
+bb12(%57 : $Builtin.Int64):                       // Preds: bb11 bb10
+  %58 = builtin "or_Int64"(%52 : $Builtin.Int64, %57 : $Builtin.Int64) : $Builtin.Int64 // user: %59
+  %59 = struct $UInt (%58 : $Builtin.Int64)       // user: %60
+  %60 = struct $_SwiftArrayBodyStorage (%0 : $Int, %59 : $UInt) // user: %61
+  %61 = struct $_ArrayBody (%60 : $_SwiftArrayBodyStorage) // user: %63
+  %62 = ref_element_addr %15 : $_ContiguousArrayStorageBase, #_ContiguousArrayStorageBase.countAndCapacity // user: %63
+  store %61 to %62 : $*_ArrayBody                 // id: %63
+  strong_release %14 : $_ContiguousArrayStorage<Element> // id: %64
+  br bb14(%15 : $_ContiguousArrayStorageBase)     // id: %65
+
+bb13:                                             // Preds: bb3
+  %66 = global_addr @_swiftEmptyArrayStorage : $*_SwiftEmptyArrayStorage // user: %67
+  %67 = address_to_pointer %66 : $*_SwiftEmptyArrayStorage to $Builtin.RawPointer // user: %68
+  %68 = raw_pointer_to_ref %67 : $Builtin.RawPointer to $_EmptyArrayStorage // users: %70, %69
+  %69 = upcast %68 : $_EmptyArrayStorage to $_ContiguousArrayStorageBase // user: %71
+  strong_retain %68 : $_EmptyArrayStorage         // id: %70
+  br bb14(%69 : $_ContiguousArrayStorageBase)     // id: %71
+
+// %72                                            // user: %73
+bb14(%72 : $_ContiguousArrayStorageBase):         // Preds: bb13 bb12
+  %73 = struct $_ContiguousArrayBuffer<Element> (%72 : $_ContiguousArrayStorageBase) // user: %74
+  return %73 : $_ContiguousArrayBuffer<Element>   // id: %74
+} // end sil function '$Ss22_ContiguousArrayBufferV19_uninitializedCount15minimumCapacityAByxGSi_SitcfC'
+

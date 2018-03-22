@@ -1,0 +1,500 @@
+// Sequence.reversed()
+sil public_external [serialized] @$Ss8SequencePsE8reversedSay7ElementQzGyF : $@convention(method) <Self where Self : Sequence> (@in_guaranteed Self) -> @owned Array<Self.Element> {
+// %0                                             // user: %3
+bb0(%0 : $*Self):
+  %1 = alloc_stack $Array<Self.Element>           // users: %329, %328, %213, %212, %119, %118, %106, %14
+  %2 = alloc_stack $Self                          // users: %13, %12, %5, %3
+  copy_addr %0 to [initialization] %2 : $*Self    // id: %3
+  %4 = witness_method $Self, #Sequence._copyToContiguousArray!1 : <Self where Self : Sequence> (Self) -> () -> ContiguousArray<Self.Element> : $@convention(witness_method: Sequence) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned ContiguousArray<τ_0_0.Element> // user: %5
+  %5 = apply %4<Self>(%2) : $@convention(witness_method: Sequence) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned ContiguousArray<τ_0_0.Element> // user: %6
+  %6 = struct_extract %5 : $ContiguousArray<Self.Element>, #ContiguousArray._buffer // user: %7
+  %7 = struct_extract %6 : $_ContiguousArrayBuffer<Self.Element>, #_ContiguousArrayBuffer._storage // user: %8
+  %8 = unchecked_ref_cast %7 : $_ContiguousArrayStorageBase to $Builtin.BridgeObject // user: %9
+  %9 = struct $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore> (%8 : $Builtin.BridgeObject) // user: %10
+  %10 = struct $_ArrayBuffer<Self.Element> (%9 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>) // user: %11
+  %11 = struct $Array<Self.Element> (%10 : $_ArrayBuffer<Self.Element>) // users: %16, %14
+  destroy_addr %2 : $*Self                        // id: %12
+  dealloc_stack %2 : $*Self                       // id: %13
+  store %11 to %1 : $*Array<Self.Element>         // id: %14
+  // function_ref Array._getCount()
+  %15 = function_ref @$SSa9_getCountSiyF : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> Int // user: %16
+  %16 = apply %15<Self.Element>(%11) : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> Int // user: %19
+  %17 = integer_literal $Builtin.Int64, 0         // users: %70, %55, %49, %46, %38, %34
+  %18 = integer_literal $Builtin.Int64, 2         // user: %20
+  %19 = struct_extract %16 : $Int, #Int._value    // users: %98, %20
+  %20 = builtin "sdiv_Int64"(%19 : $Builtin.Int64, %18 : $Builtin.Int64) : $Builtin.Int64 // users: %302, %80, %55, %51, %38, %34
+  %21 = string_literal utf8 "Can't form Range with upperBound < lowerBound" // user: %23
+  %22 = integer_literal $Builtin.Word, 45         // user: %25
+  %23 = builtin "ptrtoint_Word"(%21 : $Builtin.RawPointer) : $Builtin.Word // user: %25
+  %24 = integer_literal $Builtin.Int8, 2          // users: %334, %323, %315, %307, %87, %77, %66, %62, %43, %29, %25
+  %25 = struct $StaticString (%23 : $Builtin.Word, %22 : $Builtin.Word, %24 : $Builtin.Int8) // users: %337, %318
+  %26 = string_literal utf8 "/Users/buildnode/jenkins/workspace/oss-swift-package-osx/swift/stdlib/public/core/Range.swift" // user: %28
+  %27 = integer_literal $Builtin.Word, 93         // user: %29
+  %28 = builtin "ptrtoint_Word"(%26 : $Builtin.RawPointer) : $Builtin.Word // user: %29
+  %29 = struct $StaticString (%28 : $Builtin.Word, %27 : $Builtin.Word, %24 : $Builtin.Int8) // users: %337, %326, %318
+  %30 = integer_literal $Builtin.Int64, 632       // user: %31
+  %31 = struct $UInt (%30 : $Builtin.Int64)       // users: %337, %318
+  %32 = integer_literal $Builtin.Int32, 0         // users: %335, %324, %316, %308, %88
+  br bb1                                          // id: %33
+
+bb1:                                              // Preds: bb0
+  %34 = builtin "cmp_slt_Int64"(%20 : $Builtin.Int64, %17 : $Builtin.Int64) : $Builtin.Int1 // user: %36
+  %35 = integer_literal $Builtin.Int1, 0          // user: %36
+  %36 = builtin "int_expect_Int1"(%34 : $Builtin.Int1, %35 : $Builtin.Int1) : $Builtin.Int1 // user: %37
+  cond_br %36, bb69, bb2                          // id: %37
+
+bb2:                                              // Preds: bb1
+  %38 = builtin "cmp_eq_Int64"(%20 : $Builtin.Int64, %17 : $Builtin.Int64) : $Builtin.Int1 // user: %39
+  cond_br %38, bb68, bb3                          // id: %39
+
+bb3:                                              // Preds: bb2
+  %40 = string_literal utf8 "Index out of range"  // user: %42
+  %41 = integer_literal $Builtin.Word, 18         // user: %43
+  %42 = builtin "ptrtoint_Word"(%40 : $Builtin.RawPointer) : $Builtin.Word // user: %43
+  %43 = struct $StaticString (%42 : $Builtin.Word, %41 : $Builtin.Word, %24 : $Builtin.Int8) // user: %326
+  %44 = integer_literal $Builtin.Int64, 271       // user: %45
+  %45 = struct $UInt (%44 : $Builtin.Int64)       // user: %326
+  br bb4(%17 : $Builtin.Int64)                    // id: %46
+
+// %47                                            // users: %105, %102, %94, %80, %70, %51, %49
+bb4(%47 : $Builtin.Int64):                        // Preds: bb64 bb3
+  br bb5                                          // id: %48
+
+bb5:                                              // Preds: bb4
+  %49 = builtin "cmp_slt_Int64"(%47 : $Builtin.Int64, %17 : $Builtin.Int64) : $Builtin.Int1 // user: %50
+  cond_br %49, bb67, bb6                          // id: %50
+
+bb6:                                              // Preds: bb5
+  %51 = builtin "cmp_slt_Int64"(%47 : $Builtin.Int64, %20 : $Builtin.Int64) : $Builtin.Int1 // user: %53
+  %52 = integer_literal $Builtin.Int1, -1         // user: %53
+  %53 = builtin "int_expect_Int1"(%51 : $Builtin.Int1, %52 : $Builtin.Int1) : $Builtin.Int1 // user: %54
+  cond_br %53, bb7, bb67                          // id: %54
+
+bb7:                                              // Preds: bb6
+  %55 = builtin "cmp_slt_Int64"(%20 : $Builtin.Int64, %17 : $Builtin.Int64) : $Builtin.Int1 // user: %57
+  %56 = integer_literal $Builtin.Int1, 0          // user: %57
+  %57 = builtin "int_expect_Int1"(%55 : $Builtin.Int1, %56 : $Builtin.Int1) : $Builtin.Int1 // user: %58
+  cond_br %57, bb66, bb8                          // id: %58
+
+bb8:                                              // Preds: bb7
+  %59 = string_literal utf8 "Out of bounds: index < startIndex" // user: %61
+  %60 = integer_literal $Builtin.Word, 33         // user: %62
+  %61 = builtin "ptrtoint_Word"(%59 : $Builtin.RawPointer) : $Builtin.Word // user: %62
+  %62 = struct $StaticString (%61 : $Builtin.Word, %60 : $Builtin.Word, %24 : $Builtin.Int8) // user: %310
+  %63 = string_literal utf8 "/Users/buildnode/jenkins/workspace/oss-swift-package-osx/swift/stdlib/public/core/Collection.swift" // user: %65
+  %64 = integer_literal $Builtin.Word, 98         // user: %66
+  %65 = builtin "ptrtoint_Word"(%63 : $Builtin.RawPointer) : $Builtin.Word // user: %66
+  %66 = struct $StaticString (%65 : $Builtin.Word, %64 : $Builtin.Word, %24 : $Builtin.Int8) // users: %310, %90
+  %67 = integer_literal $Builtin.Int64, 812       // user: %68
+  %68 = struct $UInt (%67 : $Builtin.Int64)       // user: %310
+  br bb9                                          // id: %69
+
+bb9:                                              // Preds: bb8
+  %70 = builtin "cmp_slt_Int64"(%47 : $Builtin.Int64, %17 : $Builtin.Int64) : $Builtin.Int1 // user: %72
+  %71 = integer_literal $Builtin.Int1, 0          // user: %72
+  %72 = builtin "int_expect_Int1"(%70 : $Builtin.Int1, %71 : $Builtin.Int1) : $Builtin.Int1 // user: %73
+  cond_br %72, bb65, bb10                         // id: %73
+
+bb10:                                             // Preds: bb9
+  %74 = string_literal utf8 "Out of bounds: index >= endIndex" // user: %76
+  %75 = integer_literal $Builtin.Word, 32         // user: %77
+  %76 = builtin "ptrtoint_Word"(%74 : $Builtin.RawPointer) : $Builtin.Word // user: %77
+  %77 = struct $StaticString (%76 : $Builtin.Word, %75 : $Builtin.Word, %24 : $Builtin.Int8) // user: %90
+  %78 = integer_literal $Builtin.Int64, 815       // user: %79
+  %79 = struct $UInt (%78 : $Builtin.Int64)       // user: %90
+  %80 = builtin "cmp_slt_Int64"(%47 : $Builtin.Int64, %20 : $Builtin.Int64) : $Builtin.Int1 // user: %82
+  %81 = integer_literal $Builtin.Int1, -1         // user: %82
+  %82 = builtin "int_expect_Int1"(%80 : $Builtin.Int1, %81 : $Builtin.Int1) : $Builtin.Int1 // user: %83
+  cond_br %82, bb12, bb11                         // id: %83
+
+bb11:                                             // Preds: bb10
+  %84 = string_literal utf8 "Fatal error"         // user: %86
+  %85 = integer_literal $Builtin.Word, 11         // user: %87
+  %86 = builtin "ptrtoint_Word"(%84 : $Builtin.RawPointer) : $Builtin.Word // user: %87
+  %87 = struct $StaticString (%86 : $Builtin.Word, %85 : $Builtin.Word, %24 : $Builtin.Int8) // user: %90
+  %88 = struct $UInt32 (%32 : $Builtin.Int32)     // user: %90
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %89 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %90
+  %90 = apply %89(%87, %77, %66, %79, %88) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %91
+
+bb12:                                             // Preds: bb10
+  %92 = integer_literal $Builtin.Int64, 1         // user: %94
+  %93 = integer_literal $Builtin.Int1, -1         // users: %120, %98, %94
+  %94 = builtin "sadd_with_overflow_Int64"(%47 : $Builtin.Int64, %92 : $Builtin.Int64, %93 : $Builtin.Int1) : $(Builtin.Int64, Builtin.Int1) // users: %96, %95
+  %95 = tuple_extract %94 : $(Builtin.Int64, Builtin.Int1), 0 // users: %303, %302, %98
+  %96 = tuple_extract %94 : $(Builtin.Int64, Builtin.Int1), 1 // user: %97
+  cond_fail %96 : $Builtin.Int1                   // id: %97
+  %98 = builtin "ssub_with_overflow_Int64"(%19 : $Builtin.Int64, %95 : $Builtin.Int64, %93 : $Builtin.Int1) : $(Builtin.Int64, Builtin.Int1) // users: %100, %99
+  %99 = tuple_extract %98 : $(Builtin.Int64, Builtin.Int1), 0 // users: %114, %102
+  %100 = tuple_extract %98 : $(Builtin.Int64, Builtin.Int1), 1 // user: %101
+  cond_fail %100 : $Builtin.Int1                  // id: %101
+  %102 = builtin "cmp_eq_Int64"(%47 : $Builtin.Int64, %99 : $Builtin.Int64) : $Builtin.Int1 // user: %103
+  cond_br %102, bb64, bb13                        // id: %103
+
+bb13:                                             // Preds: bb12
+  %104 = alloc_stack $Self.Element                // users: %300, %298, %112
+  %105 = struct $Int (%47 : $Builtin.Int64)       // users: %122, %112, %110
+  %106 = load %1 : $*Array<Self.Element>          // users: %116, %115, %112, %110, %108
+  // function_ref Array._hoistableIsNativeTypeChecked()
+  %107 = function_ref @$SSa29_hoistableIsNativeTypeCheckedSbyF : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> Bool // user: %108
+  %108 = apply %107<Self.Element>(%106) : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> Bool // users: %116, %115, %112, %110
+  // function_ref Array._checkSubscript(_:wasNativeTypeChecked:)
+  %109 = function_ref @$SSa15_checkSubscript_20wasNativeTypeCheckeds16_DependenceTokenVSi_SbtF : $@convention(method) <τ_0_0> (Int, Bool, @guaranteed Array<τ_0_0>) -> _DependenceToken // users: %214, %115, %110
+  %110 = apply %109<Self.Element>(%105, %108, %106) : $@convention(method) <τ_0_0> (Int, Bool, @guaranteed Array<τ_0_0>) -> _DependenceToken // user: %112
+  // function_ref Array._getElement(_:wasNativeTypeChecked:matchingSubscriptCheck:)
+  %111 = function_ref @$SSa11_getElement_20wasNativeTypeChecked22matchingSubscriptCheckxSi_Sbs16_DependenceTokenVtF : $@convention(method) <τ_0_0> (Int, Bool, _DependenceToken, @guaranteed Array<τ_0_0>) -> @out τ_0_0 // users: %116, %112
+  %112 = apply %111<Self.Element>(%104, %105, %108, %110, %106) : $@convention(method) <τ_0_0> (Int, Bool, _DependenceToken, @guaranteed Array<τ_0_0>) -> @out τ_0_0
+  %113 = alloc_stack $Self.Element                // users: %211, %209, %116
+  %114 = struct $Int (%99 : $Builtin.Int64)       // users: %215, %214, %116, %115
+  %115 = apply %109<Self.Element>(%114, %108, %106) : $@convention(method) <τ_0_0> (Int, Bool, @guaranteed Array<τ_0_0>) -> _DependenceToken // user: %116
+  %116 = apply %111<Self.Element>(%113, %114, %108, %115, %106) : $@convention(method) <τ_0_0> (Int, Bool, _DependenceToken, @guaranteed Array<τ_0_0>) -> @out τ_0_0
+  // function_ref Array._makeMutableAndUniqueOrPinned()
+  %117 = function_ref @$SSa29_makeMutableAndUniqueOrPinnedyyF : $@convention(method) <τ_0_0> (@inout Array<τ_0_0>) -> () // users: %212, %118
+  %118 = apply %117<Self.Element>(%1) : $@convention(method) <τ_0_0> (@inout Array<τ_0_0>) -> ()
+  %119 = load %1 : $*Array<Self.Element>          // users: %200, %123, %122
+  %120 = struct $Bool (%93 : $Builtin.Int1)       // users: %267, %245, %228, %214, %178, %156, %139
+  // function_ref Array._getElementAddress(_:)
+  %121 = function_ref @$SSa18_getElementAddressySpyxGSiF : $@convention(method) <τ_0_0> (Int, @guaranteed Array<τ_0_0>) -> UnsafeMutablePointer<τ_0_0> // users: %215, %122
+  %122 = apply %121<Self.Element>(%105, %119) : $@convention(method) <τ_0_0> (Int, @guaranteed Array<τ_0_0>) -> UnsafeMutablePointer<τ_0_0> // user: %206
+  %123 = struct_extract %119 : $Array<Self.Element>, #Array._buffer // user: %124
+  %124 = struct_extract %123 : $_ArrayBuffer<Self.Element>, #_ArrayBuffer._storage // user: %125
+  %125 = struct_extract %124 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // users: %201, %196, %192, %187, %185, %164, %159, %155, %152, %142, %138, %135
+  %126 = metatype $@thick Self.Element.Type       // users: %265, %242, %225, %176, %153, %136, %127
+  %127 = builtin "canBeClass"<Self.Element>(%126 : $@thick Self.Element.Type) : $Builtin.Int8 // users: %262, %238, %221, %173, %149, %132, %129
+  %128 = integer_literal $Builtin.Int8, 0         // user: %129
+  %129 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %128 : $Builtin.Int8) : $Builtin.Int1 // users: %260, %236, %219, %171, %147, %130
+  cond_br %129, bb17, bb14                        // id: %130
+
+bb14:                                             // Preds: bb13
+  %131 = integer_literal $Builtin.Int8, 1         // user: %132
+  %132 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %131 : $Builtin.Int8) : $Builtin.Int1 // user: %133
+  cond_br %132, bb16, bb15                        // id: %133
+
+bb15:                                             // Preds: bb14
+  // function_ref _swift_isClassOrObjCExistentialType
+  %134 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %136
+  strong_retain %125 : $Builtin.BridgeObject      // id: %135
+  %136 = apply %134<Self.Element>(%126) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %137
+  br bb18(%136 : $Bool)                           // id: %137
+
+bb16:                                             // Preds: bb14
+  strong_retain %125 : $Builtin.BridgeObject      // id: %138
+  br bb18(%120 : $Bool)                           // id: %139
+
+bb17:                                             // Preds: bb13
+  %140 = integer_literal $Builtin.Int1, 0         // user: %141
+  %141 = struct $Bool (%140 : $Builtin.Int1)      // user: %143
+  strong_retain %125 : $Builtin.BridgeObject      // id: %142
+  br bb18(%141 : $Bool)                           // id: %143
+
+// %144                                           // user: %145
+bb18(%144 : $Bool):                               // Preds: bb17 bb16 bb15
+  %145 = struct_extract %144 : $Bool, #Bool._value // user: %146
+  cond_br %145, bb37, bb19                        // id: %146
+
+bb19:                                             // Preds: bb18
+  cond_br %129, bb23, bb20                        // id: %147
+
+bb20:                                             // Preds: bb19
+  %148 = integer_literal $Builtin.Int8, 1         // user: %149
+  %149 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %148 : $Builtin.Int8) : $Builtin.Int1 // user: %150
+  cond_br %149, bb22, bb21                        // id: %150
+
+bb21:                                             // Preds: bb20
+  // function_ref _swift_isClassOrObjCExistentialType
+  %151 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %153
+  strong_retain %125 : $Builtin.BridgeObject      // id: %152
+  %153 = apply %151<Self.Element>(%126) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %154
+  br bb24(%153 : $Bool)                           // id: %154
+
+bb22:                                             // Preds: bb20
+  strong_retain %125 : $Builtin.BridgeObject      // id: %155
+  br bb24(%120 : $Bool)                           // id: %156
+
+bb23:                                             // Preds: bb19
+  %157 = integer_literal $Builtin.Int1, 0         // user: %158
+  %158 = struct $Bool (%157 : $Builtin.Int1)      // user: %160
+  strong_retain %125 : $Builtin.BridgeObject      // id: %159
+  br bb24(%158 : $Bool)                           // id: %160
+
+// %161                                           // user: %162
+bb24(%161 : $Bool):                               // Preds: bb23 bb22 bb21
+  %162 = struct_extract %161 : $Bool, #Bool._value // user: %163
+  cond_br %162, bb25, bb26                        // id: %163
+
+bb25:                                             // Preds: bb24
+  %164 = classify_bridge_object %125 : $Builtin.BridgeObject // users: %166, %165
+  %165 = tuple_extract %164 : $(Builtin.Int1, Builtin.Int1), 0 // user: %167
+  %166 = tuple_extract %164 : $(Builtin.Int1, Builtin.Int1), 1 // user: %167
+  %167 = builtin "or_Int1"(%165 : $Builtin.Int1, %166 : $Builtin.Int1) : $Builtin.Int1 // user: %169
+  %168 = integer_literal $Builtin.Int1, 0         // user: %169
+  %169 = builtin "int_expect_Int1"(%167 : $Builtin.Int1, %168 : $Builtin.Int1) : $Builtin.Int1 // user: %170
+  cond_br %169, bb35, bb26                        // id: %170
+
+bb26:                                             // Preds: bb25 bb24
+  cond_br %129, bb30, bb27                        // id: %171
+
+bb27:                                             // Preds: bb26
+  %172 = integer_literal $Builtin.Int8, 1         // user: %173
+  %173 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %172 : $Builtin.Int8) : $Builtin.Int1 // user: %174
+  cond_br %173, bb29, bb28                        // id: %174
+
+bb28:                                             // Preds: bb27
+  // function_ref _swift_isClassOrObjCExistentialType
+  %175 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %176
+  %176 = apply %175<Self.Element>(%126) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %177
+  br bb31(%176 : $Bool)                           // id: %177
+
+bb29:                                             // Preds: bb27
+  br bb31(%120 : $Bool)                           // id: %178
+
+bb30:                                             // Preds: bb26
+  %179 = integer_literal $Builtin.Int1, 0         // user: %180
+  %180 = struct $Bool (%179 : $Builtin.Int1)      // user: %181
+  br bb31(%180 : $Bool)                           // id: %181
+
+// %182                                           // user: %183
+bb31(%182 : $Bool):                               // Preds: bb30 bb29 bb28
+  %183 = struct_extract %182 : $Bool, #Bool._value // user: %184
+  cond_br %183, bb33, bb32                        // id: %184
+
+bb32:                                             // Preds: bb31
+  %185 = unchecked_ref_cast %125 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %186
+  br bb34(%185 : $_ContiguousArrayStorageBase)    // id: %186
+
+bb33:                                             // Preds: bb31
+  %187 = bridge_object_to_ref %125 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %188
+  br bb34(%187 : $_ContiguousArrayStorageBase)    // id: %188
+
+// %189                                           // user: %190
+bb34(%189 : $_ContiguousArrayStorageBase):        // Preds: bb33 bb32
+  %190 = init_existential_ref %189 : $_ContiguousArrayStorageBase : $_ContiguousArrayStorageBase, $_NSArrayCore // user: %191
+  br bb36(%190 : $_NSArrayCore)                   // id: %191
+
+bb35:                                             // Preds: bb25
+  %192 = bridge_object_to_ref %125 : $Builtin.BridgeObject to $_NSArrayCore // user: %193
+  br bb36(%192 : $_NSArrayCore)                   // id: %193
+
+// %194                                           // user: %195
+bb36(%194 : $_NSArrayCore):                       // Preds: bb35 bb34
+  %195 = open_existential_ref %194 : $_NSArrayCore to $@opened("A4EDD5D2-2BA5-11E8-ABCD-28CFE91E5819") _NSArrayCore // user: %197
+  strong_release %125 : $Builtin.BridgeObject     // id: %196
+  %197 = unchecked_ref_cast %195 : $@opened("A4EDD5D2-2BA5-11E8-ABCD-28CFE91E5819") _NSArrayCore to $Builtin.NativeObject // user: %198
+  br bb38(%197 : $Builtin.NativeObject)           // id: %198
+
+bb37:                                             // Preds: bb18
+  // function_ref Array._getOwnerWithSemanticLabel_native()
+  %199 = function_ref @$SSa33_getOwnerWithSemanticLabel_nativeBoyF : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> @owned Builtin.NativeObject // user: %200
+  %200 = apply %199<Self.Element>(%119) : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> @owned Builtin.NativeObject // user: %202
+  strong_release %125 : $Builtin.BridgeObject     // id: %201
+  br bb38(%200 : $Builtin.NativeObject)           // id: %202
+
+// %203                                           // users: %205, %204
+bb38(%203 : $Builtin.NativeObject):               // Preds: bb37 bb36
+  %204 = strong_pin %203 : $Builtin.NativeObject  // users: %210, %208
+  strong_release %203 : $Builtin.NativeObject     // id: %205
+  %206 = struct_extract %122 : $UnsafeMutablePointer<Self.Element>, #UnsafeMutablePointer._rawValue // user: %207
+  %207 = pointer_to_address %206 : $Builtin.RawPointer to [strict] $*Self.Element // user: %208
+  %208 = mark_dependence %207 : $*Self.Element on %204 : $Optional<Builtin.NativeObject> // user: %209
+  copy_addr [take] %113 to %208 : $*Self.Element  // id: %209
+  strong_unpin %204 : $Optional<Builtin.NativeObject> // id: %210
+  dealloc_stack %113 : $*Self.Element             // id: %211
+  %212 = apply %117<Self.Element>(%1) : $@convention(method) <τ_0_0> (@inout Array<τ_0_0>) -> ()
+  %213 = load %1 : $*Array<Self.Element>          // users: %289, %216, %215, %214
+  %214 = apply %109<Self.Element>(%114, %120, %213) : $@convention(method) <τ_0_0> (Int, Bool, @guaranteed Array<τ_0_0>) -> _DependenceToken
+  %215 = apply %121<Self.Element>(%114, %213) : $@convention(method) <τ_0_0> (Int, @guaranteed Array<τ_0_0>) -> UnsafeMutablePointer<τ_0_0> // user: %295
+  %216 = struct_extract %213 : $Array<Self.Element>, #Array._buffer // user: %217
+  %217 = struct_extract %216 : $_ArrayBuffer<Self.Element>, #_ArrayBuffer._storage // user: %218
+  %218 = struct_extract %217 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // users: %290, %285, %281, %276, %274, %253, %248, %244, %241, %231, %227, %224
+  cond_br %129, bb42, bb39                        // id: %219
+
+bb39:                                             // Preds: bb38
+  %220 = integer_literal $Builtin.Int8, 1         // user: %221
+  %221 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %220 : $Builtin.Int8) : $Builtin.Int1 // user: %222
+  cond_br %221, bb41, bb40                        // id: %222
+
+bb40:                                             // Preds: bb39
+  // function_ref _swift_isClassOrObjCExistentialType
+  %223 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %225
+  strong_retain %218 : $Builtin.BridgeObject      // id: %224
+  %225 = apply %223<Self.Element>(%126) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %226
+  br bb43(%225 : $Bool)                           // id: %226
+
+bb41:                                             // Preds: bb39
+  strong_retain %218 : $Builtin.BridgeObject      // id: %227
+  br bb43(%120 : $Bool)                           // id: %228
+
+bb42:                                             // Preds: bb38
+  %229 = integer_literal $Builtin.Int1, 0         // user: %230
+  %230 = struct $Bool (%229 : $Builtin.Int1)      // user: %232
+  strong_retain %218 : $Builtin.BridgeObject      // id: %231
+  br bb43(%230 : $Bool)                           // id: %232
+
+// %233                                           // user: %234
+bb43(%233 : $Bool):                               // Preds: bb42 bb41 bb40
+  %234 = struct_extract %233 : $Bool, #Bool._value // user: %235
+  cond_br %234, bb62, bb44                        // id: %235
+
+bb44:                                             // Preds: bb43
+  cond_br %129, bb48, bb45                        // id: %236
+
+bb45:                                             // Preds: bb44
+  %237 = integer_literal $Builtin.Int8, 1         // user: %238
+  %238 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %237 : $Builtin.Int8) : $Builtin.Int1 // user: %239
+  cond_br %238, bb47, bb46                        // id: %239
+
+bb46:                                             // Preds: bb45
+  // function_ref _swift_isClassOrObjCExistentialType
+  %240 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %242
+  strong_retain %218 : $Builtin.BridgeObject      // id: %241
+  %242 = apply %240<Self.Element>(%126) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %243
+  br bb49(%242 : $Bool)                           // id: %243
+
+bb47:                                             // Preds: bb45
+  strong_retain %218 : $Builtin.BridgeObject      // id: %244
+  br bb49(%120 : $Bool)                           // id: %245
+
+bb48:                                             // Preds: bb44
+  %246 = integer_literal $Builtin.Int1, 0         // user: %247
+  %247 = struct $Bool (%246 : $Builtin.Int1)      // user: %249
+  strong_retain %218 : $Builtin.BridgeObject      // id: %248
+  br bb49(%247 : $Bool)                           // id: %249
+
+// %250                                           // user: %251
+bb49(%250 : $Bool):                               // Preds: bb48 bb47 bb46
+  %251 = struct_extract %250 : $Bool, #Bool._value // user: %252
+  cond_br %251, bb50, bb51                        // id: %252
+
+bb50:                                             // Preds: bb49
+  %253 = classify_bridge_object %218 : $Builtin.BridgeObject // users: %255, %254
+  %254 = tuple_extract %253 : $(Builtin.Int1, Builtin.Int1), 0 // user: %256
+  %255 = tuple_extract %253 : $(Builtin.Int1, Builtin.Int1), 1 // user: %256
+  %256 = builtin "or_Int1"(%254 : $Builtin.Int1, %255 : $Builtin.Int1) : $Builtin.Int1 // user: %258
+  %257 = integer_literal $Builtin.Int1, 0         // user: %258
+  %258 = builtin "int_expect_Int1"(%256 : $Builtin.Int1, %257 : $Builtin.Int1) : $Builtin.Int1 // user: %259
+  cond_br %258, bb60, bb51                        // id: %259
+
+bb51:                                             // Preds: bb50 bb49
+  cond_br %129, bb55, bb52                        // id: %260
+
+bb52:                                             // Preds: bb51
+  %261 = integer_literal $Builtin.Int8, 1         // user: %262
+  %262 = builtin "cmp_eq_Int8"(%127 : $Builtin.Int8, %261 : $Builtin.Int8) : $Builtin.Int1 // user: %263
+  cond_br %262, bb54, bb53                        // id: %263
+
+bb53:                                             // Preds: bb52
+  // function_ref _swift_isClassOrObjCExistentialType
+  %264 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %265
+  %265 = apply %264<Self.Element>(%126) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %266
+  br bb56(%265 : $Bool)                           // id: %266
+
+bb54:                                             // Preds: bb52
+  br bb56(%120 : $Bool)                           // id: %267
+
+bb55:                                             // Preds: bb51
+  %268 = integer_literal $Builtin.Int1, 0         // user: %269
+  %269 = struct $Bool (%268 : $Builtin.Int1)      // user: %270
+  br bb56(%269 : $Bool)                           // id: %270
+
+// %271                                           // user: %272
+bb56(%271 : $Bool):                               // Preds: bb55 bb54 bb53
+  %272 = struct_extract %271 : $Bool, #Bool._value // user: %273
+  cond_br %272, bb58, bb57                        // id: %273
+
+bb57:                                             // Preds: bb56
+  %274 = unchecked_ref_cast %218 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %275
+  br bb59(%274 : $_ContiguousArrayStorageBase)    // id: %275
+
+bb58:                                             // Preds: bb56
+  %276 = bridge_object_to_ref %218 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %277
+  br bb59(%276 : $_ContiguousArrayStorageBase)    // id: %277
+
+// %278                                           // user: %279
+bb59(%278 : $_ContiguousArrayStorageBase):        // Preds: bb58 bb57
+  %279 = init_existential_ref %278 : $_ContiguousArrayStorageBase : $_ContiguousArrayStorageBase, $_NSArrayCore // user: %280
+  br bb61(%279 : $_NSArrayCore)                   // id: %280
+
+bb60:                                             // Preds: bb50
+  %281 = bridge_object_to_ref %218 : $Builtin.BridgeObject to $_NSArrayCore // user: %282
+  br bb61(%281 : $_NSArrayCore)                   // id: %282
+
+// %283                                           // user: %284
+bb61(%283 : $_NSArrayCore):                       // Preds: bb60 bb59
+  %284 = open_existential_ref %283 : $_NSArrayCore to $@opened("A4EDDB22-2BA5-11E8-ABCD-28CFE91E5819") _NSArrayCore // user: %286
+  strong_release %218 : $Builtin.BridgeObject     // id: %285
+  %286 = unchecked_ref_cast %284 : $@opened("A4EDDB22-2BA5-11E8-ABCD-28CFE91E5819") _NSArrayCore to $Builtin.NativeObject // user: %287
+  br bb63(%286 : $Builtin.NativeObject)           // id: %287
+
+bb62:                                             // Preds: bb43
+  // function_ref Array._getOwnerWithSemanticLabel_native()
+  %288 = function_ref @$SSa33_getOwnerWithSemanticLabel_nativeBoyF : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> @owned Builtin.NativeObject // user: %289
+  %289 = apply %288<Self.Element>(%213) : $@convention(method) <τ_0_0> (@guaranteed Array<τ_0_0>) -> @owned Builtin.NativeObject // user: %291
+  strong_release %218 : $Builtin.BridgeObject     // id: %290
+  br bb63(%289 : $Builtin.NativeObject)           // id: %291
+
+// %292                                           // users: %294, %293
+bb63(%292 : $Builtin.NativeObject):               // Preds: bb62 bb61
+  %293 = strong_pin %292 : $Builtin.NativeObject  // users: %299, %297
+  strong_release %292 : $Builtin.NativeObject     // id: %294
+  %295 = struct_extract %215 : $UnsafeMutablePointer<Self.Element>, #UnsafeMutablePointer._rawValue // user: %296
+  %296 = pointer_to_address %295 : $Builtin.RawPointer to [strict] $*Self.Element // user: %297
+  %297 = mark_dependence %296 : $*Self.Element on %293 : $Optional<Builtin.NativeObject> // user: %298
+  copy_addr [take] %104 to %297 : $*Self.Element  // id: %298
+  strong_unpin %293 : $Optional<Builtin.NativeObject> // id: %299
+  dealloc_stack %104 : $*Self.Element             // id: %300
+  br bb64                                         // id: %301
+
+bb64:                                             // Preds: bb63 bb12
+  %302 = builtin "cmp_eq_Int64"(%95 : $Builtin.Int64, %20 : $Builtin.Int64) : $Builtin.Int1 // user: %303
+  cond_br %302, bb68, bb4(%95 : $Builtin.Int64)   // id: %303
+
+bb65:                                             // Preds: bb9
+  %304 = string_literal utf8 "Fatal error"        // user: %306
+  %305 = integer_literal $Builtin.Word, 11        // user: %307
+  %306 = builtin "ptrtoint_Word"(%304 : $Builtin.RawPointer) : $Builtin.Word // user: %307
+  %307 = struct $StaticString (%306 : $Builtin.Word, %305 : $Builtin.Word, %24 : $Builtin.Int8) // user: %310
+  %308 = struct $UInt32 (%32 : $Builtin.Int32)    // user: %310
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %309 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %310
+  %310 = apply %309(%307, %62, %66, %68, %308) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %311
+
+bb66:                                             // Preds: bb7
+  %312 = string_literal utf8 "Fatal error"        // user: %314
+  %313 = integer_literal $Builtin.Word, 11        // user: %315
+  %314 = builtin "ptrtoint_Word"(%312 : $Builtin.RawPointer) : $Builtin.Word // user: %315
+  %315 = struct $StaticString (%314 : $Builtin.Word, %313 : $Builtin.Word, %24 : $Builtin.Int8) // user: %318
+  %316 = struct $UInt32 (%32 : $Builtin.Int32)    // user: %318
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %317 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %318
+  %318 = apply %317(%315, %25, %29, %31, %316) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %319
+
+bb67:                                             // Preds: bb6 bb5
+  %320 = string_literal utf8 "Fatal error"        // user: %322
+  %321 = integer_literal $Builtin.Word, 11        // user: %323
+  %322 = builtin "ptrtoint_Word"(%320 : $Builtin.RawPointer) : $Builtin.Word // user: %323
+  %323 = struct $StaticString (%322 : $Builtin.Word, %321 : $Builtin.Word, %24 : $Builtin.Int8) // user: %326
+  %324 = struct $UInt32 (%32 : $Builtin.Int32)    // user: %326
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %325 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %326
+  %326 = apply %325(%323, %43, %29, %45, %324) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %327
+
+bb68:                                             // Preds: bb64 bb2
+  %328 = load %1 : $*Array<Self.Element>          // user: %330
+  dealloc_stack %1 : $*Array<Self.Element>        // id: %329
+  return %328 : $Array<Self.Element>              // id: %330
+
+bb69:                                             // Preds: bb1
+  %331 = string_literal utf8 "Fatal error"        // user: %333
+  %332 = integer_literal $Builtin.Word, 11        // user: %334
+  %333 = builtin "ptrtoint_Word"(%331 : $Builtin.RawPointer) : $Builtin.Word // user: %334
+  %334 = struct $StaticString (%333 : $Builtin.Word, %332 : $Builtin.Word, %24 : $Builtin.Int8) // user: %337
+  %335 = struct $UInt32 (%32 : $Builtin.Int32)    // user: %337
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %336 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %337
+  %337 = apply %336(%334, %25, %29, %31, %335) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %338
+} // end sil function '$Ss8SequencePsE8reversedSay7ElementQzGyF'

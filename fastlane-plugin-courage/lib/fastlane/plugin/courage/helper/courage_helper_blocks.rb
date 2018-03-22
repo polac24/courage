@@ -48,6 +48,15 @@ module Fastlane
       def definition
         return @definition
       end
+      def human_name
+        return @human_name
+      end
+      def building_blocks
+        return @building_blocks
+      end
+      def end
+        return @end
+      end
 
       private def parse_function_name(line)
         return {name: line[:value][/\/\/\s(.*)/, 1], value:line[:value]}
@@ -84,7 +93,7 @@ module Fastlane
         parsed_tokens = []
         function = {}
         @isExternal = false
-        @functionName = ""
+        @function_name = ""
         @attributes = []
 
         return_string_index_start = 0
@@ -98,7 +107,7 @@ module Fastlane
             @attributes.append(token[/\[(.*)\]/, 1])
           elsif token.start_with?("@$")
             parsed_tokens.append({type:"name", value:token})
-            @functionName = token
+            @function_name = token
           elsif token.end_with?("_external")
             @isExternal = true
             parsed_tokens.append({type:"external", value:token})
@@ -126,6 +135,9 @@ module Fastlane
       def attributes
         @attributes
       end
+      def function_name
+        @function_name
+      end
       def line
         @line
       end
@@ -136,7 +148,7 @@ module Fastlane
         return return_type.gsub(/@\S*\s/,'')
       end
       def to_s
-        return "#{@functionName} : #{@argument_type}->#{@return_type}"
+        return "#{@function_name} : #{@argument_type}->#{@return_type}"
       end
     end
 
@@ -153,6 +165,9 @@ module Fastlane
       end
       def arguments_count
         @arguments_count
+      end
+      def body
+        @body
       end
       def print(output)
         print_head(output)

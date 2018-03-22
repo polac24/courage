@@ -1,0 +1,35 @@
+// _ArrayBufferProtocol<>.init(copying:)
+sil public_external [serialized] [noinline] @$Ss20_ArrayBufferProtocolPss5RangeVySiG7IndicesRtzrlE7copyingxx_tcfC : $@convention(method) <Self where Self : _ArrayBufferProtocol, Self.Indices == Range<Int>> (@in Self, @thick Self.Type) -> @out Self {
+// %0                                             // user: %25
+// %1                                             // users: %27, %23, %18, %11, %6, %5
+bb0(%0 : $*Self, %1 : $*Self, %2 : $@thick Self.Type):
+  %3 = metatype $@thin _ContiguousArrayBuffer<Self.Element>.Type // user: %8
+  %4 = witness_method $Self, #_ArrayBufferProtocol.count!getter.1 : <Self where Self : _ArrayBufferProtocol> (Self) -> () -> Int : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@in_guaranteed τ_0_0) -> Int // users: %6, %5
+  %5 = apply %4<Self>(%1) : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@in_guaranteed τ_0_0) -> Int // user: %8
+  %6 = apply %4<Self>(%1) : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@in_guaranteed τ_0_0) -> Int // user: %8
+  // function_ref _ContiguousArrayBuffer.init(_uninitializedCount:minimumCapacity:)
+  %7 = function_ref @$Ss22_ContiguousArrayBufferV19_uninitializedCount15minimumCapacityAByxGSi_SitcfC : $@convention(method) <τ_0_0> (Int, Int, @thin _ContiguousArrayBuffer<τ_0_0>.Type) -> @owned _ContiguousArrayBuffer<τ_0_0> // user: %8
+  %8 = apply %7<Self.Element>(%5, %6, %3) : $@convention(method) <τ_0_0> (Int, Int, @thin _ContiguousArrayBuffer<τ_0_0>.Type) -> @owned _ContiguousArrayBuffer<τ_0_0> // users: %25, %13
+  %9 = alloc_stack $Range<Int>                    // users: %19, %12, %11
+  %10 = witness_method $Self, #RandomAccessCollection.indices!getter.1 : <Self where Self : RandomAccessCollection> (Self) -> () -> Self.Indices : $@convention(witness_method: RandomAccessCollection) <τ_0_0 where τ_0_0 : RandomAccessCollection> (@in_guaranteed τ_0_0) -> @out τ_0_0.Indices // user: %11
+  %11 = apply %10<Self>(%9, %1) : $@convention(witness_method: RandomAccessCollection) <τ_0_0 where τ_0_0 : RandomAccessCollection> (@in_guaranteed τ_0_0) -> @out τ_0_0.Indices
+  %12 = load %9 : $*Range<Int>                    // user: %18
+  %13 = struct_extract %8 : $_ContiguousArrayBuffer<Self.Element>, #_ContiguousArrayBuffer._storage // users: %26, %22, %14
+  %14 = ref_tail_addr %13 : $_ContiguousArrayStorageBase, $Self.Element // user: %15
+  %15 = address_to_pointer %14 : $*Self.Element to $Builtin.RawPointer // user: %16
+  %16 = struct $UnsafeMutablePointer<Self.Element> (%15 : $Builtin.RawPointer) // user: %18
+  %17 = witness_method $Self, #_ArrayBufferProtocol._copyContents!1 : <Self where Self : _ArrayBufferProtocol> (Self) -> (Range<Int>, UnsafeMutablePointer<Self.Element>) -> UnsafeMutablePointer<Self.Element> : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (Range<Int>, UnsafeMutablePointer<τ_0_0.Element>, @in_guaranteed τ_0_0) -> UnsafeMutablePointer<τ_0_0.Element> // user: %18
+  %18 = apply %17<Self>(%12, %16, %1) : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (Range<Int>, UnsafeMutablePointer<τ_0_0.Element>, @in_guaranteed τ_0_0) -> UnsafeMutablePointer<τ_0_0.Element>
+  dealloc_stack %9 : $*Range<Int>                 // id: %19
+  %20 = metatype $@thick Self.Type                // user: %25
+  %21 = witness_method $Self, #_ArrayBufferProtocol.startIndex!getter.1 : <Self where Self : _ArrayBufferProtocol> (Self) -> () -> Int : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@in_guaranteed τ_0_0) -> Int // user: %23
+  strong_retain %13 : $_ContiguousArrayStorageBase // id: %22
+  %23 = apply %21<Self>(%1) : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@in_guaranteed τ_0_0) -> Int // user: %25
+  %24 = witness_method $Self, #_ArrayBufferProtocol.init!allocator.1 : <Self where Self : _ArrayBufferProtocol> (Self.Type) -> (_ContiguousArrayBuffer<Self.Element>, Int) -> Self : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@owned _ContiguousArrayBuffer<τ_0_0.Element>, Int, @thick τ_0_0.Type) -> @out τ_0_0 // user: %25
+  %25 = apply %24<Self>(%0, %8, %23, %20) : $@convention(witness_method: _ArrayBufferProtocol) <τ_0_0 where τ_0_0 : _ArrayBufferProtocol> (@owned _ContiguousArrayBuffer<τ_0_0.Element>, Int, @thick τ_0_0.Type) -> @out τ_0_0
+  strong_release %13 : $_ContiguousArrayStorageBase // id: %26
+  destroy_addr %1 : $*Self                        // id: %27
+  %28 = tuple ()                                  // user: %29
+  return %28 : $()                                // id: %29
+} // end sil function '$Ss20_ArrayBufferProtocolPss5RangeVySiG7IndicesRtzrlE7copyingxx_tcfC'
+

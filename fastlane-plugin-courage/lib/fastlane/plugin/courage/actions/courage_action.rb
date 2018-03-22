@@ -170,47 +170,47 @@ if !buildCommands.empty?
           mutations = Helper::SILMutations.new(parsedBlocks)
 
 
-          if mutations.mutationsCount == 0
-            next
-          end
-          #.printToFile(file[:mutationSill])
-          for i in 0..(mutations.mutationsCount - 1)
-            mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
-            begin
-            # Build after mutation
-            FastlaneCore::CommandExecutor.execute(command: command,
-                                            print_all: true,
-                                        print_command: true
-                                        )
+          if mutations.mutationsCount > 0
+            #.printToFile(file[:mutationSill])
+            for i in 0..(mutations.mutationsCount - 1)
+              mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
+              begin
+              # Build after mutation
+              FastlaneCore::CommandExecutor.execute(command: command,
+                                              print_all: true,
+                                          print_command: true
+                                          )
 
-            # Link after mutation
-            FastlaneCore::CommandExecutor.execute(command: linkCommand,
-                                            print_all: true,
-                                        print_command: true
-                                        )
+              # Link after mutation
+              FastlaneCore::CommandExecutor.execute(command: linkCommand,
+                                              print_all: true,
+                                          print_command: true
+                                          )
 
 
-            project = "-project #{params[:project]}"
-            project = "-workspace #{params[:workspace]}" if params[:workspace]
+              project = "-project #{params[:project]}"
+              project = "-workspace #{params[:workspace]}" if params[:workspace]
 
-            #test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \"platform=iOS Simulator,name=#{params[:device]}\""
-            # any "Fatal error"
-            test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
-            begin
-            FastlaneCore::CommandExecutor.execute(command: test_command,
-                                            print_all: false,
-                                        print_command: true)
-            UI.error("Mutation not caught: #{mutation_name}!")
-            mutation_failed.push(file)
-              rescue => testEx
-                UI.success("Mutation caught: #{mutation_name}!")
-                mutation_succeeded.push(file)
+              #test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \"platform=iOS Simulator,name=#{params[:device]}\""
+              # any "Fatal error"
+              test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
+              begin
+              FastlaneCore::CommandExecutor.execute(command: test_command,
+                                              print_all: false,
+                                          print_command: true)
+              UI.error("Mutant survived: #{mutation_name}!")
+              mutation_failed.push(file)
+                rescue => testEx
+                  UI.success("Mutation killed: #{mutation_name}!")
+                  mutation_succeeded.push(file)
+                end
+
+             rescue => ex
+              mutation_skipped = file
               end
-
-           rescue => ex
-            mutation_skipped = file
             end
           end
+          puts "back"
           `mv #{output}_ #{output}`
         end
         UI.message("-----------")

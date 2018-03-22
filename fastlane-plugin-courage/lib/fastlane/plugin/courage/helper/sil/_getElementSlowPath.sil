@@ -1,0 +1,248 @@
+// _ArrayBuffer._getElementSlowPath(_:)
+sil public_external [serialized] [noinline] @$Ss12_ArrayBufferV19_getElementSlowPathyyXlSiF : $@convention(method) <Element> (Int, @guaranteed _ArrayBuffer<Element>) -> @owned AnyObject {
+// %0                                             // users: %139, %85, %70
+// %1                                             // users: %54, %49, %45, %22
+bb0(%0 : $Int, %1 : $_ArrayBuffer<Element>):
+  %2 = metatype $@thick Element.Type              // users: %34, %11, %3
+  %3 = builtin "canBeClass"<Element>(%2 : $@thick Element.Type) : $Builtin.Int8 // users: %31, %8, %5
+  %4 = integer_literal $Builtin.Int8, 0           // user: %5
+  %5 = builtin "cmp_eq_Int8"(%3 : $Builtin.Int8, %4 : $Builtin.Int8) : $Builtin.Int1 // users: %29, %6
+  cond_br %5, bb4, bb1                            // id: %6
+
+bb1:                                              // Preds: bb0
+  %7 = integer_literal $Builtin.Int8, 1           // user: %8
+  %8 = builtin "cmp_eq_Int8"(%3 : $Builtin.Int8, %7 : $Builtin.Int8) : $Builtin.Int1 // user: %9
+  cond_br %8, bb3, bb2                            // id: %9
+
+bb2:                                              // Preds: bb1
+  // function_ref _swift_isClassOrObjCExistentialType
+  %10 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %11
+  %11 = apply %10<Element>(%2) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %12
+  br bb5(%11 : $Bool)                             // id: %12
+
+bb3:                                              // Preds: bb1
+  %13 = integer_literal $Builtin.Int1, -1         // user: %14
+  %14 = struct $Bool (%13 : $Builtin.Int1)        // user: %15
+  br bb5(%14 : $Bool)                             // id: %15
+
+bb4:                                              // Preds: bb0
+  %16 = integer_literal $Builtin.Int1, 0          // user: %17
+  %17 = struct $Bool (%16 : $Builtin.Int1)        // user: %18
+  br bb5(%17 : $Bool)                             // id: %18
+
+// %19                                            // user: %20
+bb5(%19 : $Bool):                                 // Preds: bb4 bb3 bb2
+  %20 = struct_extract %19 : $Bool, #Bool._value  // user: %21
+  cond_br %20, bb6, bb7                           // id: %21
+
+bb6:                                              // Preds: bb5
+  %22 = struct_extract %1 : $_ArrayBuffer<Element>, #_ArrayBuffer._storage // user: %23
+  %23 = struct_extract %22 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // users: %136, %24
+  %24 = classify_bridge_object %23 : $Builtin.BridgeObject // users: %26, %25
+  %25 = tuple_extract %24 : $(Builtin.Int1, Builtin.Int1), 0 // user: %27
+  %26 = tuple_extract %24 : $(Builtin.Int1, Builtin.Int1), 1 // user: %27
+  %27 = builtin "or_Int1"(%25 : $Builtin.Int1, %26 : $Builtin.Int1) : $Builtin.Int1 // user: %28
+  cond_br %27, bb24, bb7                          // id: %28
+
+bb7:                                              // Preds: bb6 bb5
+  cond_br %5, bb11, bb8                           // id: %29
+
+bb8:                                              // Preds: bb7
+  %30 = integer_literal $Builtin.Int8, 1          // user: %31
+  %31 = builtin "cmp_eq_Int8"(%3 : $Builtin.Int8, %30 : $Builtin.Int8) : $Builtin.Int1 // user: %32
+  cond_br %31, bb10, bb9                          // id: %32
+
+bb9:                                              // Preds: bb8
+  // function_ref _swift_isClassOrObjCExistentialType
+  %33 = function_ref @_swift_isClassOrObjCExistentialType : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %34
+  %34 = apply %33<Element>(%2) : $@convention(thin) <τ_0_0> (@thick τ_0_0.Type) -> Bool // user: %35
+  br bb12(%34 : $Bool)                            // id: %35
+
+bb10:                                             // Preds: bb8
+  %36 = integer_literal $Builtin.Int1, -1         // user: %37
+  %37 = struct $Bool (%36 : $Builtin.Int1)        // user: %38
+  br bb12(%37 : $Bool)                            // id: %38
+
+bb11:                                             // Preds: bb7
+  %39 = integer_literal $Builtin.Int1, 0          // user: %40
+  %40 = struct $Bool (%39 : $Builtin.Int1)        // user: %41
+  br bb12(%40 : $Bool)                            // id: %41
+
+// %42                                            // user: %43
+bb12(%42 : $Bool):                                // Preds: bb11 bb10 bb9
+  %43 = struct_extract %42 : $Bool, #Bool._value  // user: %44
+  cond_br %43, bb14, bb13                         // id: %44
+
+bb13:                                             // Preds: bb12
+  %45 = struct_extract %1 : $_ArrayBuffer<Element>, #_ArrayBuffer._storage // user: %46
+  %46 = struct_extract %45 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // user: %47
+  %47 = unchecked_ref_cast %46 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %48
+  br bb15(%47 : $_ContiguousArrayStorageBase)     // id: %48
+
+bb14:                                             // Preds: bb12
+  %49 = struct_extract %1 : $_ArrayBuffer<Element>, #_ArrayBuffer._storage // user: %50
+  %50 = struct_extract %49 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // user: %51
+  %51 = bridge_object_to_ref %50 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %52
+  br bb15(%51 : $_ContiguousArrayStorageBase)     // id: %52
+
+// %53                                            // user: %73
+bb15(%53 : $_ContiguousArrayStorageBase):         // Preds: bb14 bb13
+  %54 = struct_extract %1 : $_ArrayBuffer<Element>, #_ArrayBuffer._storage // user: %55
+  %55 = struct_extract %54 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // users: %133, %132, %83
+  %56 = string_literal utf8 "Index out of range"  // user: %58
+  %57 = integer_literal $Builtin.Word, 18         // user: %60
+  %58 = builtin "ptrtoint_Word"(%56 : $Builtin.RawPointer) : $Builtin.Word // user: %60
+  %59 = integer_literal $Builtin.Int8, 2          // users: %129, %114, %96, %92, %64, %60
+  %60 = struct $StaticString (%58 : $Builtin.Word, %57 : $Builtin.Word, %59 : $Builtin.Int8) // user: %134
+  %61 = string_literal utf8 "/Users/buildnode/jenkins/workspace/oss-swift-package-osx/swift/stdlib/public/core/ContiguousArrayBuffer.swift" // user: %63
+  %62 = integer_literal $Builtin.Word, 109        // user: %64
+  %63 = builtin "ptrtoint_Word"(%61 : $Builtin.RawPointer) : $Builtin.Word // user: %64
+  %64 = struct $StaticString (%63 : $Builtin.Word, %62 : $Builtin.Word, %59 : $Builtin.Int8) // user: %134
+  %65 = integer_literal $Builtin.Int64, 414       // user: %66
+  %66 = struct $UInt (%65 : $Builtin.Int64)       // user: %134
+  %67 = integer_literal $Builtin.Int32, 0         // users: %130, %115
+  br bb16                                         // id: %68
+
+bb16:                                             // Preds: bb15
+  %69 = integer_literal $Builtin.Int64, 0         // user: %71
+  %70 = struct_extract %0 : $Int, #Int._value     // users: %79, %71
+  %71 = builtin "cmp_slt_Int64"(%70 : $Builtin.Int64, %69 : $Builtin.Int64) : $Builtin.Int1 // user: %72
+  cond_br %71, bb23, bb17                         // id: %72
+
+bb17:                                             // Preds: bb16
+  %73 = ref_element_addr %53 : $_ContiguousArrayStorageBase, #_ContiguousArrayStorageBase.countAndCapacity // user: %74
+  %74 = struct_element_addr %73 : $*_ArrayBody, #_ArrayBody._storage // user: %75
+  %75 = struct_element_addr %74 : $*_SwiftArrayBodyStorage, #_SwiftArrayBodyStorage.count // user: %76
+  %76 = struct_element_addr %75 : $*Int, #Int._value // user: %77
+  %77 = load %76 : $*Builtin.Int64                // user: %78
+  %78 = builtin "assumeNonNegative_Int64"(%77 : $Builtin.Int64) : $Builtin.Int64 // user: %79
+  %79 = builtin "cmp_slt_Int64"(%70 : $Builtin.Int64, %78 : $Builtin.Int64) : $Builtin.Int1 // user: %81
+  %80 = integer_literal $Builtin.Int1, -1         // user: %81
+  %81 = builtin "int_expect_Int1"(%79 : $Builtin.Int1, %80 : $Builtin.Int1) : $Builtin.Int1 // user: %82
+  cond_br %81, bb18, bb23                         // id: %82
+
+bb18:                                             // Preds: bb17
+  %83 = bridge_object_to_ref %55 : $Builtin.BridgeObject to $_ContiguousArrayStorageBase // user: %84
+  %84 = ref_tail_addr %83 : $_ContiguousArrayStorageBase, $AnyObject // user: %87
+  %85 = struct_extract %0 : $Int, #Int._value     // user: %86
+  %86 = builtin "truncOrBitCast_Int64_Word"(%85 : $Builtin.Int64) : $Builtin.Word // user: %87
+  %87 = index_addr %84 : $*AnyObject, %86 : $Builtin.Word // user: %88
+  %88 = load %87 : $*AnyObject                    // users: %125, %123, %122, %110, %106, %105, %103, %102, %100
+  %89 = string_literal utf8 "Down-casted Array element failed to match the target type" // user: %91
+  %90 = integer_literal $Builtin.Word, 57         // user: %92
+  %91 = builtin "ptrtoint_Word"(%89 : $Builtin.RawPointer) : $Builtin.Word // user: %92
+  %92 = struct $StaticString (%91 : $Builtin.Word, %90 : $Builtin.Word, %59 : $Builtin.Int8) // user: %117
+  %93 = string_literal utf8 "/Users/buildnode/jenkins/workspace/oss-swift-package-osx/swift/stdlib/public/core/ArrayBuffer.swift" // user: %95
+  %94 = integer_literal $Builtin.Word, 99         // user: %96
+  %95 = builtin "ptrtoint_Word"(%93 : $Builtin.RawPointer) : $Builtin.Word // user: %96
+  %96 = struct $StaticString (%95 : $Builtin.Word, %94 : $Builtin.Word, %59 : $Builtin.Int8) // user: %117
+  %97 = integer_literal $Builtin.Int64, 434       // user: %98
+  %98 = struct $UInt (%97 : $Builtin.Int64)       // user: %117
+  br bb19                                         // id: %99
+
+bb19:                                             // Preds: bb18
+  strong_retain %88 : $AnyObject                  // id: %100
+  %101 = alloc_stack $AnyObject                   // users: %121, %109, %107, %103
+  strong_retain %88 : $AnyObject                  // id: %102
+  store %88 to %101 : $*AnyObject                 // id: %103
+  %104 = alloc_stack $Element                     // users: %120, %119, %108, %107
+  strong_retain %88 : $AnyObject                  // id: %105
+  strong_retain %88 : $AnyObject                  // id: %106
+  checked_cast_addr_br take_always AnyObject in %101 : $*AnyObject to Element in %104 : $*Element, bb21, bb20 // id: %107
+
+bb20:                                             // Preds: bb19
+  dealloc_stack %104 : $*Element                  // id: %108
+  dealloc_stack %101 : $*AnyObject                // id: %109
+  strong_release %88 : $AnyObject                 // id: %110
+  %111 = string_literal utf8 "Fatal error"        // user: %113
+  %112 = integer_literal $Builtin.Word, 11        // user: %114
+  %113 = builtin "ptrtoint_Word"(%111 : $Builtin.RawPointer) : $Builtin.Word // user: %114
+  %114 = struct $StaticString (%113 : $Builtin.Word, %112 : $Builtin.Word, %59 : $Builtin.Int8) // user: %117
+  %115 = struct $UInt32 (%67 : $Builtin.Int32)    // user: %117
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %116 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %117
+  %117 = apply %116(%114, %92, %96, %98, %115) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %118
+
+bb21:                                             // Preds: bb19
+  destroy_addr %104 : $*Element                   // id: %119
+  dealloc_stack %104 : $*Element                  // id: %120
+  dealloc_stack %101 : $*AnyObject                // id: %121
+  strong_release %88 : $AnyObject                 // id: %122
+  strong_release %88 : $AnyObject                 // id: %123
+  br bb22                                         // id: %124
+
+bb22:                                             // Preds: bb21
+  br bb29(%88 : $AnyObject)                       // id: %125
+
+bb23:                                             // Preds: bb17 bb16
+  %126 = string_literal utf8 "Fatal error"        // user: %128
+  %127 = integer_literal $Builtin.Word, 11        // user: %129
+  %128 = builtin "ptrtoint_Word"(%126 : $Builtin.RawPointer) : $Builtin.Word // user: %129
+  %129 = struct $StaticString (%128 : $Builtin.Word, %127 : $Builtin.Word, %59 : $Builtin.Int8) // user: %134
+  %130 = struct $UInt32 (%67 : $Builtin.Int32)    // user: %134
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %131 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %134
+  strong_retain %55 : $Builtin.BridgeObject       // id: %132
+  strong_retain %55 : $Builtin.BridgeObject       // id: %133
+  %134 = apply %131(%129, %60, %64, %66, %130) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %135
+
+bb24:                                             // Preds: bb6
+  %136 = bridge_object_to_ref %23 : $Builtin.BridgeObject to $_NSArrayCore // user: %137
+  %137 = open_existential_ref %136 : $_NSArrayCore to $@opened("F051AC54-2C7E-11E8-84A1-28CFE91E5819") _NSArrayCore // users: %139, %139, %138
+  %138 = objc_method %137 : $@opened("F051AC54-2C7E-11E8-84A1-28CFE91E5819") _NSArrayCore, #_NSArrayCore.objectAt!1.foreign : <Self where Self : _NSArrayCore> (Self) -> (Int) -> AnyObject, $@convention(objc_method) <τ_0_0 where τ_0_0 : _NSArrayCore> (Int, τ_0_0) -> @autoreleased AnyObject // user: %139
+  %139 = apply %138<@opened("F051AC54-2C7E-11E8-84A1-28CFE91E5819") _NSArrayCore>(%0, %137) : $@convention(objc_method) <τ_0_0 where τ_0_0 : _NSArrayCore> (Int, τ_0_0) -> @autoreleased AnyObject // type-defs: %137; users: %177, %175, %174, %162, %158, %157, %155, %154
+  %140 = string_literal utf8 "NSArray element failed to match the Swift Array Element type" // user: %142
+  %141 = integer_literal $Builtin.Word, 60        // user: %144
+  %142 = builtin "ptrtoint_Word"(%140 : $Builtin.RawPointer) : $Builtin.Word // user: %144
+  %143 = integer_literal $Builtin.Int8, 2         // users: %166, %148, %144
+  %144 = struct $StaticString (%142 : $Builtin.Word, %141 : $Builtin.Word, %143 : $Builtin.Int8) // user: %169
+  %145 = string_literal utf8 "/Users/buildnode/jenkins/workspace/oss-swift-package-osx/swift/stdlib/public/core/ArrayBuffer.swift" // user: %147
+  %146 = integer_literal $Builtin.Word, 99        // user: %148
+  %147 = builtin "ptrtoint_Word"(%145 : $Builtin.RawPointer) : $Builtin.Word // user: %148
+  %148 = struct $StaticString (%147 : $Builtin.Word, %146 : $Builtin.Word, %143 : $Builtin.Int8) // user: %169
+  %149 = integer_literal $Builtin.Int64, 440      // user: %150
+  %150 = struct $UInt (%149 : $Builtin.Int64)     // user: %169
+  %151 = integer_literal $Builtin.Int32, 0        // user: %167
+  br bb25                                         // id: %152
+
+bb25:                                             // Preds: bb24
+  %153 = alloc_stack $AnyObject                   // users: %173, %161, %159, %155
+  strong_retain %139 : $AnyObject                 // id: %154
+  store %139 to %153 : $*AnyObject                // id: %155
+  %156 = alloc_stack $Element                     // users: %172, %171, %160, %159
+  strong_retain %139 : $AnyObject                 // id: %157
+  strong_retain %139 : $AnyObject                 // id: %158
+  checked_cast_addr_br take_always AnyObject in %153 : $*AnyObject to Element in %156 : $*Element, bb27, bb26 // id: %159
+
+bb26:                                             // Preds: bb25
+  dealloc_stack %156 : $*Element                  // id: %160
+  dealloc_stack %153 : $*AnyObject                // id: %161
+  strong_release %139 : $AnyObject                // id: %162
+  %163 = string_literal utf8 "Fatal error"        // user: %165
+  %164 = integer_literal $Builtin.Word, 11        // user: %166
+  %165 = builtin "ptrtoint_Word"(%163 : $Builtin.RawPointer) : $Builtin.Word // user: %166
+  %166 = struct $StaticString (%165 : $Builtin.Word, %164 : $Builtin.Word, %143 : $Builtin.Int8) // user: %169
+  %167 = struct $UInt32 (%151 : $Builtin.Int32)   // user: %169
+  // function_ref _fatalErrorMessage(_:_:file:line:flags:)
+  %168 = function_ref @$Ss18_fatalErrorMessage__4file4line5flagss5NeverOs12StaticStringV_A2HSus6UInt32VtF : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never // user: %169
+  %169 = apply %168(%166, %144, %148, %150, %167) : $@convention(thin) (StaticString, StaticString, StaticString, UInt, UInt32) -> Never
+  unreachable                                     // id: %170
+
+bb27:                                             // Preds: bb25
+  destroy_addr %156 : $*Element                   // id: %171
+  dealloc_stack %156 : $*Element                  // id: %172
+  dealloc_stack %153 : $*AnyObject                // id: %173
+  strong_release %139 : $AnyObject                // id: %174
+  strong_release %139 : $AnyObject                // id: %175
+  br bb28                                         // id: %176
+
+bb28:                                             // Preds: bb27
+  br bb29(%139 : $AnyObject)                      // id: %177
+
+// %178                                           // user: %179
+bb29(%178 : $AnyObject):                          // Preds: bb28 bb22
+  return %178 : $AnyObject                        // id: %179
+} // end sil function '$Ss12_ArrayBufferV19_getElementSlowPathyyXlSiF'
+

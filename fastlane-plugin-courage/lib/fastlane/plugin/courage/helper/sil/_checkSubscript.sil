@@ -1,0 +1,18 @@
+// Array._checkSubscript(_:wasNativeTypeChecked:)
+sil public_external [serialized] [_semantics "array.check_subscript"] @$SSa15_checkSubscript_20wasNativeTypeCheckeds16_DependenceTokenVSi_SbtF : $@convention(method) <Element> (Int, Bool, @guaranteed Array<Element>) -> _DependenceToken {
+// %0                                             // user: %8
+// %1                                             // user: %8
+// %2                                             // user: %3
+bb0(%0 : $Int, %1 : $Bool, %2 : $Array<Element>):
+  %3 = struct_extract %2 : $Array<Element>, #Array._buffer // users: %8, %5
+  // function_ref _ArrayBuffer._checkInoutAndNativeTypeCheckedBounds(_:wasNativeTypeChecked:)
+  %4 = function_ref @$Ss12_ArrayBufferV37_checkInoutAndNativeTypeCheckedBounds_03wasfgH0ySi_SbtF : $@convention(method) <τ_0_0> (Int, Bool, @guaranteed _ArrayBuffer<τ_0_0>) -> () // user: %8
+  %5 = struct_extract %3 : $_ArrayBuffer<Element>, #_ArrayBuffer._storage // user: %6
+  %6 = struct_extract %5 : $_BridgeStorage<_ContiguousArrayStorageBase, _NSArrayCore>, #_BridgeStorage.rawValue // users: %9, %7
+  strong_retain %6 : $Builtin.BridgeObject        // id: %7
+  %8 = apply %4<Element>(%0, %1, %3) : $@convention(method) <τ_0_0> (Int, Bool, @guaranteed _ArrayBuffer<τ_0_0>) -> ()
+  strong_release %6 : $Builtin.BridgeObject       // id: %9
+  %10 = struct $_DependenceToken ()               // user: %11
+  return %10 : $_DependenceToken                  // id: %11
+} // end sil function '$SSa15_checkSubscript_20wasNativeTypeCheckeds16_DependenceTokenVSi_SbtF'
+
