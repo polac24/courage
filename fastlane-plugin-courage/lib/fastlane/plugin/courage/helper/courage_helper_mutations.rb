@@ -9,7 +9,8 @@ module Fastlane
         @all_functions = blocks.select{|x| x.type == "function"}.map{|function|
           function.definition.function_name
         }
-        thing = YAML::load_file(File.join(__dir__, 'reversedArray.yml'))
+
+        thing = YAML::load_file(File.join(__dir__, 'all.yml'))
         mutation_defs = thing.map{ |mutation_representation| 
           SILGenericMutation.new(mutation_representation["mutation"])
         }
@@ -23,6 +24,7 @@ module Fastlane
         }
         @all_mutations = all_mutations
       end
+
       def print_mutation(i, output)
         mutation = @all_mutations[i]
         block = mutation[:block]
@@ -54,6 +56,7 @@ module Fastlane
       def initialize(object)
         @required = SILGenericMutationRequired.new(object["required"])
         @actions = SILGenericMutationActions.new(object["actions"])
+        @replaces = SILGenericMutationVariables.new(object)
         @name = object["name"]
       end
       def name
@@ -66,6 +69,7 @@ module Fastlane
         return true
       end
       def print_mutation(function, all_functions, output)
+        variables = @replaces.replaces(function)
         function.human_name.print(output)
         function.definition.print(output)
         function.building_blocks[0..-2].each {|x| x.print(output)}
@@ -74,7 +78,7 @@ module Fastlane
         function.building_blocks[-1].body[0..-2].each {|x| output.puts x[:value]}
         return_index, available = function.building_blocks[-1].body[-1][:value].match(/return %(\d+).*\/\/.*id:.*%(\d+)/).captures
 
-        @actions.before_return.print(output, available.to_i, return_index.to_i)
+        @actions.before_return.print(output, available.to_i, return_index.to_i, variables)
 
         output.puts (function.end[:value])
         output.puts ""
@@ -88,7 +92,32 @@ module Fastlane
         @expected_return = object["return"]
       end
       def isSupported(function)
-        function.definition.return_type.to_s == @expected_return
+        case @expected_return
+        when String
+          return function.definition.return_type.to_s == @expected_return
+        when Hash
+          return false unless function.definition.return_type.type.to_s == @expected_return["type"]
+          return false unless function.definition.return_type.isGeneric == !@expected_return["generic"].nil?
+          return true
+        end
+        return false
+      end
+    end
+    class SILGenericMutationVariables
+      def initialize(object)
+        @expected_return = object["required"]["return"]
+      end
+      def replaces(function)
+        replaces_for_type(@expected_return, function.definition.return_type)
+      end
+      def replaces_for_type(object, type)
+        return [] unless !object.nil?
+        replaces = []
+        if !object["variable"].nil?
+          replaces.push({key:object["variable"], value: type.to_s})
+        end
+        replaces.concat(replaces_for_type(object["generic"], type.generics.join(","))) unless !type.is_a?(Helper::Type) || !type.isGeneric || object["generic"].nil?
+        replaces
       end
     end
     class SILGenericMutationActions
@@ -112,9 +141,14 @@ module Fastlane
           @fileName = object["file"]
         end
       end
-      def print(output, available_index, return_index)
+      def print(output, available_index, return_index, variables)
         unless @string.nil?
-          output.puts(@string.gsub(/%(\d+)/) {|num| "%#{num[1..-1].to_i+available_index}"}.gsub(/#0/, "%#{return_index}"))
+          line = @string.gsub(/%(\d+)/) {|num| "%#{num[1..-1].to_i+available_index}"}
+          line = line.gsub(/#0/, "%#{return_index}")
+          line = variables.reduce(line){|prev_line, replace|
+            prev_line.gsub(/@#{replace[:key]}/, "#{replace[:value]}")
+          }
+          output.puts(line)
           return 
         end
         unless @fileName.nil?
@@ -129,9 +163,13 @@ module Fastlane
 
     class SILAfterFunctions
       def initialize(object)
-        @functions = object.map{|x|
-          SILAfterFunctionMutationAction.new(x)
-        }
+        if object.nil?
+          @functions = []
+        else
+          @functions = object.map{|x|
+            SILAfterFunctionMutationAction.new(x)
+          }
+        end
       end
       def print_after_function(output, already_defined_functions)
         @functions.each {|x|
@@ -146,7 +184,7 @@ module Fastlane
       end
       def print_after_function(output, already_defined_functions)
         unless already_defined_functions.include? @external_symbol_name
-          print(output, 0, 0)
+          print(output, 0, 0, [])
         end
       end
     end

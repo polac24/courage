@@ -10,6 +10,7 @@ module Fastlane
           #Helper::SILParser.new(params[:sil_file]).print($stdout)
           parsed = Helper::SILParser.new(params[:sil_file]).parsed
           mutations = Helper::SILMutations.new(parsed)
+          puts mutations.mutationsCount
           mutations.print_mutation(0, $stdout)
           return 
         end
@@ -138,9 +139,6 @@ if !buildCommands.empty?
           sil = element[:sibPath].gsub('.sib', '.sil')
           sil_mutated = sil.sub('.sil', '_.sil')
           sil_reference = sil.sub('.sil', '_org.sil')
-          #`echo "sil_stage canonical" >> #{sil_mutated}`
-          #{}`cat #{element[:compilingFile]} >> #{sil_mutated}`
-          #{}`tail -n +2 #{sil} >> #{sil_mutated}`
           `grep "import" #{element[:compilingFile]} > #{sil_mutated}`
           `cat #{sil} >> #{sil_mutated}`
           `cp #{sil_mutated} #{sil_reference}`
@@ -171,53 +169,40 @@ if !buildCommands.empty?
 
 
           if mutations.mutationsCount > 0
-            #.printToFile(file[:mutationSill])
-            for i in 0..(mutations.mutationsCount - 1)
-              mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
-              begin
-              # Build after mutation
-              FastlaneCore::CommandExecutor.execute(command: command,
-                                              print_all: true,
-                                          print_command: true
-                                          )
+            # ensure no-mutation sil suceeds
+            parsed.printToFile(file[:mutationSill])
 
-              # Link after mutation
-              FastlaneCore::CommandExecutor.execute(command: linkCommand,
-                                              print_all: true,
-                                          print_command: true
-                                          )
-
-
-              project = "-project #{params[:project]}"
-              project = "-workspace #{params[:workspace]}" if params[:workspace]
-
-              #test_command = "xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \"platform=iOS Simulator,name=#{params[:device]}\""
-              # any "Fatal error"
-              test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
-              begin
-              FastlaneCore::CommandExecutor.execute(command: test_command,
-                                              print_all: false,
-                                          print_command: true)
-              UI.error("Mutant survived: #{mutation_name}!")
-              mutation_failed.push(file)
-                rescue => testEx
+            if rebuild_and_test(command:command, linkCommand:linkCommand, params:params) != true
+              #mutation cannot be built from .sil
+               mutation_skipped.push(file)
+               UI.error("File ineligable for mutation: #{output}")
+            else
+              # mutation eligable
+              for i in 0..(mutations.mutationsCount - 1)
+                mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
+                
+                test_result = rebuild_and_test(command:command, linkCommand:linkCommand, params:params)
+                case test_result
+                when nil
+                  mutation_skipped.push(mutation_name)
+                  UI.error("Mutation #{mutation_name} cannot be verfied!")
+                when true
+                  UI.error("Mutant survived: #{mutation_name}!")
+                  mutation_failed.push(mutation_name)
+                when false
                   UI.success("Mutation killed: #{mutation_name}!")
-                  mutation_succeeded.push(file)
+                  mutation_succeeded.push(mutation_name)
                 end
-
-             rescue => ex
-              mutation_skipped = file
               end
             end
           end
-          puts "back"
           `mv #{output}_ #{output}`
         end
         UI.message("-----------")
         UI.message("Succeeded:")
-        UI.message("#{mutation_succeeded.map{|a| a[:sil_reference]}}")
+        UI.message("#{mutation_succeeded}")
         UI.message("Failed:")
-        UI.message("#{mutation_failed.map{|a| a[:sil_reference]}}")
+        UI.message("#{mutation_failed}")
         UI.message("Skipped:")
         UI.message("#{mutation_skipped.map{|a| a[:sil_reference]}}")
         UI.message("-----------")
@@ -234,6 +219,38 @@ if !buildCommands.empty?
                                         end
                                         end
                                       )
+      end
+
+      def self.rebuild_and_test(command:command, linkCommand:linkCommand, params:params)
+        begin
+          # Build after mutation
+          FastlaneCore::CommandExecutor.execute(command: command,
+                                          print_all: true,
+                                      print_command: true
+                                      )
+
+          # Link after mutation
+          FastlaneCore::CommandExecutor.execute(command: linkCommand,
+                                          print_all: true,
+                                      print_command: true
+                                      )
+
+
+          project = "-project #{params[:project]}"
+          project = "-workspace #{params[:workspace]}" if params[:workspace]
+
+          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
+          begin
+            FastlaneCore::CommandExecutor.execute(command: test_command,
+                                            print_all: false,
+                                        print_command: true)
+            return true
+          rescue => testEx
+            return false
+          end
+        rescue => ex
+          return nil
+        end
       end
 
       def self.description
