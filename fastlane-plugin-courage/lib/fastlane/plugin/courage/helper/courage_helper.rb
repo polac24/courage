@@ -34,22 +34,23 @@ module Fastlane
         end
       end
 
+      def symbols
+        @parsed.select{|block|
+          block.is_a?(SILFunction) || block.is_a?(SILFunctionHeader) || block.is_a?(SILGlobalVariable)
+        }
+      end
+
 
       def parse(tokens)
         parsed = []
         index = 0
-        nextFunction = SILBlock.find_index("function_body_start", tokens, index).to_i - 1
-        while nextFunction > 0
-          if nextFunction  > (index + 1) 
-            parsed.append(SILBlock.new(tokens[index..(nextFunction-1)]))
-          end
-          index = SILBlock.find_index("end", tokens, nextFunction)+1
-          parsed.append(SILFunction.new(tokens[nextFunction...(index)]))
-
-          nextFunction = SILBlock.find_index("function_body_start", tokens, index).to_i - 1
+        provider = TokenProvider.new(tokens)
+        loop do
+          block = SILBlock.nextBlock(provider)
+          break if block.nil?
+          parsed.append(block)
         end
-        #rest of a static
-        parsed.append(SILBlock.new(tokens.drop(index)))
+        parsed
       end
 
       def tokenize(path)
@@ -64,6 +65,8 @@ module Fastlane
             else
               new_token[:type]="function_definition"
             end
+          elsif line.start_with?("sil_global")
+            new_token[:type]="global_variable"
           elsif line.start_with?("  ")
            new_token[:type]="nested"
           elsif line.start_with?("//")
@@ -85,6 +88,23 @@ module Fastlane
         end
 
         return tokens
+      end
+    end
+    class TokenProvider
+      def initialize(tokens)
+        @tokens = tokens
+        @i = 0
+      end
+      def peek
+        return @tokens[@i]
+      end
+      def peek_forward
+        return @tokens[@i+1]
+      end
+      def read
+        token = @tokens[@i]
+        @i += 1
+        return token
       end
     end
   end

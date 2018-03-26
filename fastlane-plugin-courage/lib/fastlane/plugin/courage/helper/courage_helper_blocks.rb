@@ -3,6 +3,28 @@ module Fastlane
 
   module Helper
     class SILBlock
+      def self.nextBlock(provider)
+        lines = []
+        loop do
+          line = provider.peek_forward
+          break if line.nil?
+          case line[:type]
+          when "function_body_start"
+            return SILBlock.new(lines) if lines.count > 0 
+            return SILFunction.build(provider)
+          when "function_definition"
+            return SILBlock.new(lines) if lines.count > 0 
+            return SILFunctionHeader.build(provider)
+          when "global_variable"
+            return SILBlock.new(lines) if lines.count > 0 
+            return SILGlobalVariable.build(provider)
+          else
+            lines.push(provider.read)
+          end
+        end
+        return SILBlock.new(lines) if lines.count > 0 
+        nil
+      end
       def initialize(lines)
         @lines = lines
         @type = "static"
@@ -27,29 +49,72 @@ module Fastlane
         @lines.join("\n")
       end
     end
-
-    class SILFunction < SILBlock
+    class SILGlobalVariable < SILBlock
+      def self.build(provider)
+        lines = [provider.read, provider.read]
+        SILGlobalVariable.new(lines)
+      end
       def initialize(lines)
         super(lines)
-        @type = "function"
-
+        @type = "global_variable"
         @human_name = SILFunctionComment.new(lines[0])
-        @definition = SILFunctionDefinition.new(lines[1])
-        @building_blocks = parse_building_blocks(lines.drop(2)[0...-1])
-        @end = lines.last
-      end
-      def print(output)
-        @human_name.print(output)
-        @definition.print(output)
-        @building_blocks.each {|x| x.print(output)}
-        output.puts (@end[:value])
-        output.puts ""
+        @definition = SILGlobalDefinition.new(lines[1])
       end
       def definition
         return @definition
       end
       def human_name
         return @human_name
+      end
+      def print(output)
+        @human_name.print(output)
+        @definition.print(output)
+      end
+    end
+    class SILFunctionHeader < SILBlock
+      def self.build(provider)
+        lines = [provider.read, provider.read]
+        SILFunctionHeader.new(lines)
+      end
+      def initialize(lines)
+        super(lines)
+        @type = "function_definition"
+        @human_name = SILFunctionComment.new(lines[0])
+        @definition = SILFunctionDefinition.new(lines[1])
+      end
+      def definition
+        return @definition
+      end
+      def human_name
+        return @human_name
+      end
+      def print(output)
+        @human_name.print(output)
+        @definition.print(output)
+      end
+    end
+    class SILFunction < SILFunctionHeader
+      def self.build(provider)
+        lines = []
+        loop do
+          line = provider.read
+          lines.append(line)
+          break if line[:type] == "end"
+        end
+        SILFunction.new(lines)
+      end
+      def initialize(lines)
+        super(lines)
+        @type = "function"
+
+        @building_blocks = parse_building_blocks(lines.drop(2)[0...-1])
+        @end = lines.last
+      end
+      def print(output)
+        super(output)
+        @building_blocks.each {|x| x.print(output)}
+        output.puts (@end[:value])
+        output.puts ""
       end
       def building_blocks
         return @building_blocks
@@ -58,9 +123,9 @@ module Fastlane
         return @end
       end
 
-      private def parse_function_name(line)
-        return {name: line[:value][/\/\/\s(.*)/, 1], value:line[:value]}
-      end
+      # private def parse_function_name(line)
+      #   return {name: line[:value][/\/\/\s(.*)/, 1], value:line[:value]}
+      # end
       private def parse_building_blocks(lines)
         parsed_blocks = []
         index = 0
@@ -105,7 +170,7 @@ module Fastlane
             parsed_tokens.append({type:"sil", value:token})
           elsif token.start_with?("[")
             @attributes.append(token[/\[(.*)\]/, 1])
-          elsif token.start_with?("@$")
+          elsif token.start_with?("@")
             parsed_tokens.append({type:"name", value:token})
             @function_name = token
           elsif token.end_with?("_external")
@@ -116,7 +181,9 @@ module Fastlane
           end
         end
         second_part = @line[convention_index + 2...@line.length]
-        return_string=second_part[(second_part.index(")")+1)..(second_part.index("{")-1)]
+        end_index = second_part.size
+        end_index = second_part.index("{") unless second_part.index("{").nil?
+        return_string=second_part[(second_part.index(")")+1)..(end_index-1)]
 
         argument_type, return_type = Type.read_function_type(parse_return_type(return_string))
         @argument_type = Type.build(argument_type)
@@ -135,7 +202,7 @@ module Fastlane
       def attributes
         @attributes
       end
-      def function_name
+      def name
         @function_name
       end
       def line
@@ -182,6 +249,20 @@ module Fastlane
       end
       private def parse_block_arguments(line)
         return line.scan(/%(\d*)/)
+      end
+    end
+    class SILGlobalDefinition < SILBlock
+      def initialize(line)
+        super ([line])
+        tokens = line[:value].split(' ')
+        tokens.each{|x|
+          if x.start_with?("@_")
+            @name = x
+          end
+        }
+      end
+      def name
+        @name
       end
     end
   end

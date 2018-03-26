@@ -14,40 +14,36 @@
 \ %4 = apply %3<[@type]>(%1) : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element> // user: %8\n
 \ dealloc_stack %1 : $*Array<@type>             // id: %5\n
 \ return %4 : $Array<@type>                     // id: %8\n"
-      after_function:
+      dependencies:
         - file: 
-          file: "sil/reversed.sil"
-          external_symbol_name: "@$Ss8SequencePsE8reversedSay7ElementQzGyF"
+          file: "sil/revesed_array.sil"
+
+
+- mutation: 
+    name: "Empty Array"
+    required:
+      return: 
+        type: "Array"
+        generic: 
+          variable: "type"
+    actions:
+      before_function_return: "\ \ %2 = metatype $@thin Array<@type>.Type           // user: %12\n
+\ %3 = integer_literal $Builtin.Word, 0           // user: %5\n
+\ // function_ref _allocateUninitializedArray<A>(_:)\n
+\ %4 = function_ref @$Ss27_allocateUninitializedArrayySayxG_BptBwlF : $@convention(thin) <τ_0_0> (Builtin.Word) -> (@owned Array<τ_0_0>, Builtin.RawPointer) // user: %5\n
+\ %5 = apply %4<@type>(%3) : $@convention(thin) <τ_0_0> (Builtin.Word) -> (@owned Array<τ_0_0>, Builtin.RawPointer) // users: %9, %6, %8\n
+\ %6 = tuple_extract %5 : $(Array<@type>, Builtin.RawPointer), 0 // users: %12, %7\n
+\ retain_value %6 : $Array<@type>                  // id: %7\n
+\ %8 = tuple_extract %5 : $(Array<@type>, Builtin.RawPointer), 1 // user: %10\n
+\ release_value %5 : $(Array<@type>, Builtin.RawPointer) // id: %9\n
+\ %10 = pointer_to_address %8 : $Builtin.RawPointer to [strict] $*@type\n
+\ // function_ref Array.init(arrayLiteral:)\n
+\ %11 = function_ref @$SSa12arrayLiteralSayxGxd_tcfC : $@convention(method) <τ_0_0> (@owned Array<τ_0_0>, @thin Array<τ_0_0>.Type) -> @owned Array<τ_0_0> // user: %12\n
+\ %12 = apply %11<@type>(%6, %2) : $@convention(method) <τ_0_0> (@owned Array<τ_0_0>, @thin Array<τ_0_0>.Type) -> @owned Array<τ_0_0> // user: %13\n
+\ return %12 : $Array<@type>                       // id: %13\n"
+      dependencies:
         - file: 
-          file: "sil/_ArrayBufferProtocol<>_init.sil"
-          external_symbol_name: "@$Ss20_ArrayBufferProtocolPss5RangeVySiG7IndicesRtzrlE7copyingxx_tcfC"
-        - file: 
-          file: "sil/_checkInoutAndNativeTypeCheckedBounds.sil"
-          external_symbol_name: "@$Ss12_ArrayBufferV37_checkInoutAndNativeTypeCheckedBounds_03wasfgH0ySi_SbtF"
-        - file: 
-          file: "sil/_checkSubscript.sil"
-          external_symbol_name: "@$SSa15_checkSubscript_20wasNativeTypeCheckeds16_DependenceTokenVSi_SbtF"
-        - file: 
-          file: "sil/_ContiguousArrayBuffer_init.sil"
-          external_symbol_name: "@$Ss22_ContiguousArrayBufferV19_uninitializedCount15minimumCapacityAByxGSi_SitcfC"
-        - file: 
-          file: "sil/_getElement.sil"
-          external_symbol_name: "@$SSa11_getElement_20wasNativeTypeChecked22matchingSubscriptCheckxSi_Sbs16_DependenceTokenVtF"
-        - file: 
-          file: "sil/_getElementSlowPath.sil"
-          external_symbol_name: "@$Ss12_ArrayBufferV19_getElementSlowPathyyXlSiF"
-        - file: 
-          file: "sil/_getOwnerWithSemanticLabel_native.sil"
-          external_symbol_name: "@$SSa33_getOwnerWithSemanticLabel_nativeBoyF"
-        - file: 
-          file: "sil/_hoistableIsNativeTypeChecked.sil"
-          external_symbol_name: "@$SSa29_hoistableIsNativeTypeCheckedSbyF"
-        - file: 
-          file: "sil/_makeMutableAndUniqueOrPinned.sil"
-          external_symbol_name: "@$SSa29_makeMutableAndUniqueOrPinnedyyF"
-        - file: 
-          file: "sil/Array_getElementAddress.sil"
-          external_symbol_name: "@$SSa18_getElementAddressySpyxGSiF"
+          file: "sil/empty_array.sil"
 
 - mutation: 
     name: "Return nil"

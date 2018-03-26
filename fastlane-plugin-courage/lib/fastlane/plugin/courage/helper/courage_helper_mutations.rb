@@ -6,9 +6,10 @@ module Fastlane
     class SILMutations
       def initialize(blocks)
         @blocks = blocks
-        @all_functions = blocks.select{|x| x.type == "function"}.map{|function|
-          function.definition.function_name
+        @all_symbols = blocks.select{|x| ["function", "function_definition", "global_variable"].include?(x.type)}.map{|function|
+          function.definition.name
         }
+
 
         thing = YAML::load_file(File.join(__dir__, 'all.yml'))
         mutation_defs = thing.map{ |mutation_representation| 
@@ -33,7 +34,7 @@ module Fastlane
         @blocks.each do  |parse|
           if parse.type == "function" && parse.definition == block.definition
             # mutate
-            mutation_representation.print_mutation(block, @all_functions, output)
+            mutation_representation.print_mutation(block, @all_symbols, output)
           else
             parse.print(output)
           end
@@ -68,7 +69,7 @@ module Fastlane
         return false unless @required.isSupported(function)
         return true
       end
-      def print_mutation(function, all_functions, output)
+      def print_mutation(function, all_symbols, output)
         variables = @replaces.replaces(function)
         function.human_name.print(output)
         function.definition.print(output)
@@ -83,7 +84,7 @@ module Fastlane
         output.puts (function.end[:value])
         output.puts ""
 
-        @actions.after_return.print_after_function(output, all_functions)
+        @actions.dependencies.print_after_function(output, all_symbols)
       end
     end
 
@@ -123,13 +124,13 @@ module Fastlane
     class SILGenericMutationActions
       def initialize(object)
         @before_return = SILGenericMutationAction.new(object["before_function_return"])
-        @after_return = SILAfterFunctions.new(object["after_function"])
+        @dependencies = SILDependencies.new(object["dependencies"])
       end
       def before_return
         @before_return
       end
-      def after_return
-        @after_return
+      def dependencies
+        @dependencies
       end
     end
 
@@ -161,31 +162,31 @@ module Fastlane
       end
     end
 
-    class SILAfterFunctions
+    class SILDependencies
       def initialize(object)
         if object.nil?
           @functions = []
         else
           @functions = object.map{|x|
-            SILAfterFunctionMutationAction.new(x)
+            SILDependency.new(x)
           }
         end
       end
-      def print_after_function(output, already_defined_functions)
+      def print_after_function(output, already_defined_symbols)
         @functions.each {|x|
-          x.print_after_function(output, already_defined_functions)
+          x.print_after_function(output, already_defined_symbols)
         }
       end
     end
-    class SILAfterFunctionMutationAction < SILGenericMutationAction
+    class SILDependency
       def initialize(object)
-        super(object)
-        @external_symbol_name = object["external_symbol_name"]
+        file = object["file"]
+        @symbols = Helper::SILParser.new(File.join(__dir__, file)).symbols
       end
-      def print_after_function(output, already_defined_functions)
-        unless already_defined_functions.include? @external_symbol_name
-          print(output, 0, 0, [])
-        end
+      def print_after_function(output, already_defined_symbols)
+        @symbols.each{|symbol|
+          symbol.print(output) unless already_defined_symbols.include? symbol.definition.name
+        }
       end
     end
 
