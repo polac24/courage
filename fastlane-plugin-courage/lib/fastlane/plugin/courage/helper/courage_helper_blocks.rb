@@ -113,6 +113,12 @@ module Fastlane
       def print(output)
         super(output)
         @building_blocks.each {|x| x.print(output)}
+        print_end(output)
+      end
+      def print_header(output)
+        SILFunctionHeader.instance_method(:print).bind(self).call(output)
+      end
+      def print_end(output)
         output.puts (@end[:value])
         output.puts ""
       end
@@ -229,6 +235,7 @@ module Fastlane
         @index = parse_block_number(lines[definition_index])
         @arguments_count = parse_block_arguments(lines[definition_index][:value]).count
         @body = lines.drop(definition_index+1)
+        @accesses = SILAccess.readAll(ContentProvider.new(@body))
       end
       def arguments_count
         @arguments_count
@@ -236,9 +243,18 @@ module Fastlane
       def body
         @body
       end
+      def accesses
+        @accesses
+      end
       def print(output)
         print_head(output)
         @body.map{|x| output.puts x[:value]}
+      end
+      def print_with_offset(output, offset)
+        print_head(output)
+        @body.map{|x|
+          SILGenericMutationAction.modifyLine(x, offset, "", [])
+        }.each{|x| output.puts x[:value]}
       end
       def print_head(output)
         @comments.each{|x| output.puts x[:value]}
@@ -264,6 +280,62 @@ module Fastlane
       def name
         @name
       end
+    end
+    class SILAccess
+      def self.readAll(lines_provider)
+        accesses = []
+        loop do
+          line = lines_provider.peek
+          break if line.nil?
+          if line[:type] == "begin_access"
+              accesses.push(SILAccess.new(lines_provider))
+          end
+          lines_provider.read
+        end
+        accesses
+      end
+      def initialize(lines_provider)
+        @line_number = lines_provider.index
+        line = lines_provider.read
+        @id, modifiers, @access_id, @type = line[:value].match(/%(\d+) = begin_access([\s\S\[\]]*) %(\d+) : \$\*(\S*) /).captures
+        @modifiers = modifiers.match(/\[(\S+)\]/).captures
+        @offset_end = find_end_access(lines_provider, @id, @type)
+        @last_used_ids = find_end_ids(lines_provider, @offset_end)
+      end
+      def access_type
+        @type
+      end
+      def line_number
+        @line_number
+      end
+      def is_writeable
+        @modifiers.include?("modify")
+      end
+      def id
+        @id
+      end
+      def offset_end
+        @offset_end
+      end
+      def last_used_ids
+        @last_used_ids
+      end
+      def to_s
+        "id: #{@id}, end_offset: #{@offset_end}, type: #{@type}, on: #{@access_id}, last_id: #{@last_used_ids}"
+      end
+      private def find_end_access(lines_provider, id, type)
+        i = 1
+        loop do
+          line = lines_provider.peek_custom(i)
+          return nil if line.nil?
+          return i if / end_access %#{id} : \$\*#{type} /.match? (line[:value])
+          i += 1
+        end
+      end
+      private def find_end_ids(lines_provider, i)
+        line = lines_provider.peek_custom(i)
+        return line[:value].match(/\/\/\sid:\s%(\d+)/ ).captures[0].to_i
+     end
     end
   end
 end

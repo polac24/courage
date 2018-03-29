@@ -69,3 +69,14 @@
       before_function_return: "\ \ %1 = tuple ()                                   // user: %2\n
 \ return %1 : $()                                 // id: %2"
 
+- access_mutation: 
+    name: "Set Int to -1"
+    required:
+      type: "Int"
+    actions:
+      mutate: "\ \ %1 = integer_literal $Builtin.Int64, -1        // user: %2\n
+\ %2 = struct $Int (%1 : $Builtin.Int64)        // user: %4\n
+\ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
+\ store %2 to %3 : $*Int                        // id: %4\n
+\ end_access %3 : $*Int                          // id: %5\n"
+      offset: 4

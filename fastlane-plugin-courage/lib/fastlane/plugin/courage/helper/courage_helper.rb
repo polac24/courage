@@ -44,7 +44,7 @@ module Fastlane
       def parse(tokens)
         parsed = []
         index = 0
-        provider = TokenProvider.new(tokens)
+        provider = ContentProvider.new(tokens)
         loop do
           block = SILBlock.nextBlock(provider)
           break if block.nil?
@@ -67,6 +67,8 @@ module Fastlane
             end
           elsif line.start_with?("sil_global")
             new_token[:type]="global_variable"
+          elsif line.include?(" = begin_access ")
+            new_token[:type]="begin_access"
           elsif line.start_with?("  ")
            new_token[:type]="nested"
           elsif line.start_with?("//")
@@ -90,7 +92,7 @@ module Fastlane
         return tokens
       end
     end
-    class TokenProvider
+    class ContentProvider
       def initialize(tokens)
         @tokens = tokens
         @i = 0
@@ -101,10 +103,16 @@ module Fastlane
       def peek_forward
         return @tokens[@i+1]
       end
+      def peek_custom(i)
+        return @tokens[@i + i]
+      end
       def read
         token = @tokens[@i]
         @i += 1
         return token
+      end
+      def index
+        @i
       end
     end
   end

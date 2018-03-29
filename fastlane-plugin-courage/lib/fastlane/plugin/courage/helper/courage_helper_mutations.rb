@@ -13,13 +13,20 @@ module Fastlane
 
         thing = YAML::load_file(File.join(__dir__, 'all.yml'))
         mutation_defs = thing.map{ |mutation_representation| 
-          SILGenericMutation.new(mutation_representation["mutation"])
+          if !mutation_representation["mutation"].nil?
+            SILGenericMutation.new(mutation_representation["mutation"])
+          elsif !mutation_representation["access_mutation"].nil?
+            SILAccessMutation.new(mutation_representation["access_mutation"])
+          end
         }
         all_mutations = []
         blocks.each { |block|
           mutation_defs.each{|mutation|
             if mutation.isSupported(block)
-              all_mutations.append({block: block, mutation: mutation})
+              new_mutations = (0...mutation.count(block)).map{|x|
+                {block: block, mutation: mutation, index:x}
+              }
+              all_mutations.concat(new_mutations)
             end
           }
         }
@@ -30,11 +37,12 @@ module Fastlane
         mutation = @all_mutations[i]
         block = mutation[:block]
         mutation_representation = mutation[:mutation]
+        mutation_index = mutation[:index]
 
         @blocks.each do  |parse|
           if parse.type == "function" && parse.definition == block.definition
             # mutate
-            mutation_representation.print_mutation(block, @all_symbols, output)
+            mutation_representation.print_mutation(block, mutation_index, @all_symbols, output)
           else
             parse.print(output)
           end
@@ -63,13 +71,15 @@ module Fastlane
       def name
         @name
       end
+      def count(function)
+        1
+      end
       def isSupported(function)
-        return false unless function.type == "function"
         return false unless FunctionMutation.isSupported(function) 
         return false unless @required.isSupported(function)
         return true
       end
-      def print_mutation(function, all_symbols, output)
+      def print_mutation(function, index, all_symbols, output)
         variables = @replaces.replaces(function)
         function.human_name.print(output)
         function.definition.print(output)
@@ -142,13 +152,9 @@ module Fastlane
           @fileName = object["file"]
         end
       end
-      def print(output, available_index, return_index, variables)
+      def print(output, offset_index, return_index, variables)
         unless @string.nil?
-          line = @string.gsub(/%(\d+)/) {|num| "%#{num[1..-1].to_i+available_index}"}
-          line = line.gsub(/#0/, "%#{return_index}")
-          line = variables.reduce(line){|prev_line, replace|
-            prev_line.gsub(/@#{replace[:key]}/, "#{replace[:value]}")
-          }
+          line = SILGenericMutationAction.modifyLine(@string, offset_index, return_index, variables)
           output.puts(line)
           return 
         end
@@ -159,6 +165,14 @@ module Fastlane
             end  
           end 
         end
+      end
+      def self.modifyLine(line_input, offset_index, return_index, variables)
+        line = line_input.gsub(/%(\d+)/) {|num| "%#{num[1..-1].to_i+offset_index}"}
+        line = line.gsub(/#0/, "%#{return_index}")
+        line = variables.reduce(line){|prev_line, replace|
+          prev_line.gsub(/@#{replace[:key]}/, "#{replace[:value]}")
+        }
+        line
       end
     end
 
@@ -190,109 +204,110 @@ module Fastlane
       end
     end
 
-    class SILMutations2
-      def initialize(blocks)
-        @blocks = blocks
-        mutation_types = [NopFunction, NilReturnFunction]
-
-        mutations = blocks.select{|x| x.type == "function"}.map {|block|
-          blockMutations = []
-          mutation_types.each {|mutation|
-            blockMutations.append(mutation.new(block)) if mutation.isSupported(block)
-          }
-          blockMutations 
-        }
-        @mutations = mutations.reduce([]){|p,n| p.concat(n)}
-      end
-      def mutationsCount
-        @mutations.size
-      end
-      def print_mutation_to_file(index, fileName)
-        output = File.open(fileName,"w" )
-        mutation_summary = print_mutation(index, output)
-        output.close
-        mutation_summary
-      end
-      def print_mutation(index, output)
-        mutation = @mutations[index]
-        @blocks.each do  |parse|
-          if parse.type == "function" && parse.definition == mutation.definition
-            # mutate
-            mutation.print(output)
-          else
-            parse.print(output)
-          end
-        end
-        mutation.to_s
-      end
-    end
-
-    class FunctionMutation < SILFunction
+    class FunctionMutation
       def self.isSupported(function)
+        return false unless function.type == "function"
         return false unless !function.definition.isExternal
         return false unless !function.definition.attributes.include?("transparent")
         return true
       end
     end
 
-    class NopFunction < FunctionMutation
-      def initialize(block)
-        super(block.lines)
-        @argumentsCount = @building_blocks[0].arguments_count
+    class SILAccessMutation
+      def initialize(object)
+        @required = SILAccessMutationRequired.new(object["required"])
+        @actions = SILAccessMutationActions.new(object["actions"])
+        @name = object["name"]
       end
-      def self.isSupported(function)
-        return false unless super(function)
-        return false unless function.definition.return_type.type == "()"
-        return true
+      def name
+        @name
       end
-      def print(output)
-        @human_name.print(output)
-        @definition.print(output)
-        @building_blocks[0].print_head(output)
-        print_empty_bb(@argumentsCount, output)
-        output.puts (@end[:value])
-        output.puts ""
-      end
-      private def print_empty_bb(startin_index, output)
-         output.puts ("  %#{startin_index} = tuple ()                                   // user: %#{startin_index+1}")
-         output.puts ("  return %#{startin_index} : $()                                 // id: %#{startin_index+1}")
+      def count(function)
+        @required.accesses(function).count
       end
       def to_s
-        return "No operation of #{@human_name}"
+        @name
+      end
+      def isSupported(function)
+        return false unless FunctionMutation.isSupported(function) 
+        return false unless @required.isSupported(function)
+        return true
+      end
+      def print_mutation(function, i, all_functions, output)
+        function.print_header(output)
+        left_index = i
+        offset = 0
+        building_blocks = function.building_blocks
+        for block in building_blocks
+          if left_index.nil?
+            block.print_with_offset(output, offset)
+          else
+            potential_mutations = @required.accesses_block(block, 0)
+            if potential_mutations.count < left_index
+              block.print(output)
+              left_index -= potential_mutations.count
+            else
+              access_index = potential_mutations[left_index]
+              offset = print_block_with_mutation(block, block.accesses[access_index], output)
+              left_index = nil
+            end
+          end
+        end
+        function.print_end(output)
+      end
+      private def print_block_with_mutation(block, access, output)
+          block.print_head(output)
+          # +2 means that we should include "dealloc_stack"
+          access_ending_index = access.line_number + access.offset_end + 2
+          block.body[0..access_ending_index].each{|x| output.puts(x[:value])}
+          @actions.print(output, access.last_used_ids, access.id)
+          block.body[(access_ending_index+1)..-1].map{|x| 
+            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, "", [])
+          }.each{|x| output.puts(x)}
+
+          @actions.offset
       end
     end
-    class NilReturnFunction < FunctionMutation
-      def initialize(block)
-        super(block.lines)
-        @argumentsCount = @building_blocks[0].arguments_count
-        @generic_optional_type = @definition.return_type.generics[0].type
+    class SILAccessMutationRequired
+      def initialize(object)
+        @type = object["type"]
       end
-      def self.isSupported(function)
-        return false unless super(function)
-        return false unless function.definition.return_type.isGeneric 
-        return false unless function.definition.return_type.type.type == "Optional"
-        return false unless function.definition.return_type.generics.count == 1
-        return false unless function.definition.return_type.generics[0].isSimpleType
-        return true
+      def accesses(function)
+        building_blocks = function.building_blocks
+        indexes = []
+        access_offset = 0
+        for i in 0...building_blocks.count
+          indexes.concat(accesses_block(building_blocks[i], access_offset))
+          access_offset += building_blocks[i].accesses.count
+        end
+        indexes
       end
-      def print(output)
-        @human_name.print(output)
-        @definition.print(output)
-        @building_blocks[0].print_head(output)
-        print_empty_bb(@argumentsCount, @generic_optional_type, output)
-        output.puts (@end[:value])
-        output.puts ""
+      def accesses_block(building_block, offset)
+        indexes = []
+        all_accesses = building_block.accesses
+        for i in 0...all_accesses.count
+          indexes.push(i+offset) if all_accesses[i].access_type == @type && all_accesses[i].is_writeable
+        end
+        indexes
       end
-      private def print_empty_bb(startin_index, type, output)
-         output.puts ("  %#{startin_index} = alloc_stack $Optional<#{type}>              // users: %#{startin_index+1}, %#{startin_index+2}, %#{startin_index+3}")
-         output.puts ("  inject_enum_addr %#{startin_index} : $*Optional<#{type}>, #Optional.none!enumelt // id: %#{startin_index+1}")
-         output.puts ("  %#{startin_index+2} = tuple ()")
-         output.puts ("  %#{startin_index+3} = load %#{startin_index} : $*Optional<#{type}>               // user: %#{startin_index+5}")
-         output.puts ("  dealloc_stack %#{startin_index} : $*Optional<#{type}>           // id: %#{startin_index+4}")
-         output.puts ("  return %#{startin_index+3} : $Optional<#{type}>                   // id: %#{startin_index+5}")
+      def isSupported(function)
+        accesses(function).count > 0
       end
-      def to_s
-        return "Return nil of #{@human_name}"
+    end
+    class SILAccessMutationActions
+      def initialize(object)
+        @action = SILGenericMutationAction.new(object["mutate"])
+        @offset = 0
+        @offset = object["offset"] if !object["offset"].nil?
+      end
+      def offset
+        @offset
+      end
+      def action
+        @action
+      end
+      def print(output, available_index, return_index)
+        @action.print(output, available_index, return_index, [])
       end
     end
   end
