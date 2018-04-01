@@ -154,7 +154,7 @@ module Fastlane
       end
       def print(output, offset_index, return_index, variables)
         unless @string.nil?
-          line = SILGenericMutationAction.modifyLine(@string, offset_index, return_index, variables)
+          line = SILGenericMutationAction.modifyLine(@string, offset_index, 0, return_index, variables)
           output.puts(line)
           return 
         end
@@ -166,8 +166,12 @@ module Fastlane
           end 
         end
       end
-      def self.modifyLine(line_input, offset_index, return_index, variables)
-        line = line_input.gsub(/%(\d+)/) {|num| "%#{num[1..-1].to_i+offset_index}"}
+      def self.modifyLine(line_input, offset_index, rewrite_index_start, return_index, variables)
+        line = line_input.gsub(/%(\d+)/) {|num| 
+          matched_var_index = num[1..-1].to_i
+          matched_var_index += offset_index if matched_var_index > rewrite_index_start
+          "%#{matched_var_index}"
+        }
         line = line.gsub(/#0/, "%#{return_index}")
         line = variables.reduce(line){|prev_line, replace|
           prev_line.gsub(/@#{replace[:key]}/, "#{replace[:value]}")
@@ -243,7 +247,7 @@ module Fastlane
             block.print_with_offset(output, offset)
           else
             potential_mutations = @required.accesses_block(block, 0)
-            if potential_mutations.count < left_index
+            if potential_mutations.count <= left_index
               block.print(output)
               left_index -= potential_mutations.count
             else
@@ -259,10 +263,10 @@ module Fastlane
           block.print_head(output)
           # +2 means that we should include "dealloc_stack"
           access_ending_index = access.line_number + access.offset_end + 2
-          block.body[0..access_ending_index].each{|x| output.puts(x[:value])}
-          @actions.print(output, access.last_used_ids, access.id)
-          block.body[(access_ending_index+1)..-1].map{|x| 
-            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, "", [])
+          block.body[0...access_ending_index].each{|x| output.puts(x[:value])}
+          @actions.print(output, access.last_used_ids+1, access.access_id)
+          block.body[(access_ending_index)..-1].map{|x| 
+            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.last_used_ids, "", [])
           }.each{|x| output.puts(x)}
 
           @actions.offset

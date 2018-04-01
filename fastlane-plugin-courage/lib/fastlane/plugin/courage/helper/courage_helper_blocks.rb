@@ -253,8 +253,8 @@ module Fastlane
       def print_with_offset(output, offset)
         print_head(output)
         @body.map{|x|
-          SILGenericMutationAction.modifyLine(x, offset, "", [])
-        }.each{|x| output.puts x[:value]}
+          SILGenericMutationAction.modifyLine(x[:value], offset, 0, "", [])
+        }.each{|x| output.puts x}
       end
       def print_head(output)
         @comments.each{|x| output.puts x[:value]}
@@ -317,6 +317,9 @@ module Fastlane
       def offset_end
         @offset_end
       end
+      def access_id
+        @access_id
+      end
       def last_used_ids
         @last_used_ids
       end
@@ -324,7 +327,7 @@ module Fastlane
         "id: #{@id}, end_offset: #{@offset_end}, type: #{@type}, on: #{@access_id}, last_id: #{@last_used_ids}"
       end
       private def find_end_access(lines_provider, id, type)
-        i = 1
+        i = 0
         loop do
           line = lines_provider.peek_custom(i)
           return nil if line.nil?

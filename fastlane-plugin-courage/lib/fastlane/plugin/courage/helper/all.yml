@@ -79,4 +79,4 @@
 \ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
 \ store %2 to %3 : $*Int                        // id: %4\n
 \ end_access %3 : $*Int                          // id: %5\n"
-      offset: 4
+      offset: 6

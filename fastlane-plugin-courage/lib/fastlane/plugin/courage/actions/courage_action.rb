@@ -11,7 +11,7 @@ module Fastlane
           parsed = Helper::SILParser.new(params[:sil_file]).parsed
           mutations = Helper::SILMutations.new(parsed)
           puts mutations.mutationsCount
-          mutations.print_mutation(1, $stdout)
+          mutations.print_mutation(0, $stdout)
           return 
         end
         UI.message("The courage plugin is working!")
