@@ -241,10 +241,11 @@ module Fastlane
         function.print_header(output)
         left_index = i
         offset = 0
+        offset_start = 0
         building_blocks = function.building_blocks
         for block in building_blocks
           if left_index.nil?
-            block.print_with_offset(output, offset)
+            block.print_with_offset(output, offset, offset_start)
           else
             potential_mutations = @required.accesses_block(block, 0)
             if potential_mutations.count <= left_index
@@ -252,7 +253,7 @@ module Fastlane
               left_index -= potential_mutations.count
             else
               access_index = potential_mutations[left_index]
-              offset = print_block_with_mutation(block, block.accesses[access_index], output)
+              offset, offset_start = print_block_with_mutation(block, block.accesses[access_index], output)
               left_index = nil
             end
           end
@@ -266,10 +267,10 @@ module Fastlane
           block.body[0...access_ending_index].each{|x| output.puts(x[:value])}
           @actions.print(output, access.last_used_ids+1, access.access_id)
           block.body[(access_ending_index)..-1].map{|x| 
-            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.last_used_ids, "", [])
+            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.id, "", [])
           }.each{|x| output.puts(x)}
 
-          @actions.offset
+          [@actions.offset, access.id]
       end
     end
     class SILAccessMutationRequired

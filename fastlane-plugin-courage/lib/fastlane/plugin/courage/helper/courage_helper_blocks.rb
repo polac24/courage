@@ -250,10 +250,10 @@ module Fastlane
         print_head(output)
         @body.map{|x| output.puts x[:value]}
       end
-      def print_with_offset(output, offset)
+      def print_with_offset(output, offset, offset_start)
         print_head(output)
         @body.map{|x|
-          SILGenericMutationAction.modifyLine(x[:value], offset, 0, "", [])
+          SILGenericMutationAction.modifyLine(x[:value], offset, offset_start, "", [])
         }.each{|x| output.puts x}
       end
       def print_head(output)
@@ -312,7 +312,7 @@ module Fastlane
         @modifiers.include?("modify")
       end
       def id
-        @id
+        @id.to_i
       end
       def offset_end
         @offset_end
