@@ -237,7 +237,7 @@ module Fastlane
         return false unless @required.isSupported(function)
         return true
       end
-      def print_mutation(function, i, all_functions, output)
+      def print_mutation(function, i, all_symbols, output)
         function.print_header(output)
         left_index = i
         offset = 0
@@ -259,6 +259,8 @@ module Fastlane
           end
         end
         function.print_end(output)
+
+        @actions.dependencies.print_after_function(output, all_symbols)
       end
       private def print_block_with_mutation(block, access, output)
           block.print_head(output)
@@ -304,12 +306,16 @@ module Fastlane
         @action = SILGenericMutationAction.new(object["mutate"])
         @offset = 0
         @offset = object["offset"] if !object["offset"].nil?
+        @dependencies = SILDependencies.new(object["dependencies"])
       end
       def offset
         @offset
       end
       def action
         @action
+      end
+      def dependencies
+        @dependencies
       end
       def print(output, available_index, return_index)
         @action.print(output, available_index, return_index, [])
