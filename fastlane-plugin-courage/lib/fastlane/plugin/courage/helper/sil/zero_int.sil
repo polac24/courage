@@ -1,0 +1,3 @@
+
+// Int.init(_builtinIntegerLiteral:)
+sil [transparent] [serialized] @$SSi22_builtinIntegerLiteralSiBi2048__tcfC : $@convention(method) (Builtin.Int2048, @thin Int.Type) -> Int

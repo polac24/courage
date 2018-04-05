@@ -124,7 +124,10 @@ if !buildCommands.empty?
 
       def self.make_sils(files:files)
         files.each_with_index do |element, index|
-          command = element[:command].gsub('.o ', '.sil ') + " -emit-sil "
+          command = element[:command].gsub(/\s-emit-module-path\s.*?\.swiftmodule\s/, ' ')
+          command = command.gsub(/\s-emit-dependencies-path\s.*?\.d\s/, ' ')
+          command = command.gsub(/\s-emit-module-doc-path\s.*?\.swiftdoc\s/, ' ')
+          command = command.gsub('.o ', '.sil ') + " -emit-silgen "
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: false,
                                       print_command: true)
@@ -157,7 +160,7 @@ if !buildCommands.empty?
 
         files.reverse_each do |file|      
 
-          command = file[:rebuildCommand] + " -assume-parsing-unqualified-ownership-sil"
+          command = file[:rebuildCommand] #+ " -assume-parsing-unqualified-ownership-sil"
           linkCommand = file[:linkCommand]
           output = file[:oFile]
           `mv #{output} #{output}_`
@@ -168,7 +171,7 @@ if !buildCommands.empty?
           mutations = Helper::SILMutations.new(parsedBlocks)
 
 
-          if mutations.mutationsCount > 0
+          if mutations.mutationsCount > -1
             # ensure no-mutation sil suceeds
             parsed.printToFile(file[:mutationSill])
 

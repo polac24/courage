@@ -53,12 +53,17 @@
         generic: 
           variable: "type"
     actions:
-      before_function_return: "\ \ %1 = alloc_stack $Optional<@type>              // users: %2, %3, %4\n
-\ inject_enum_addr %1 : $*Optional<@type>, #Optional.none!enumelt // id: %2\n
-\ %3 = tuple ()\n
-\ %4 = load %1 : $*Optional<@type>               // user: %6\n
-\ dealloc_stack %1 : $*Optional<@type>           // id: %5\n
-\ return %4 : $Optional<@type>                   // id: %6\n"
+      before_function_return: "\ \ %1 = alloc_stack $Optional<@type>                 // users: %6, %5, %4\n
+\ %2 = metatype $@thin Optional<@type>.Type         // user: %4\n
+\ // function_ref Optional.init(nilLiteral:)\n
+\ %3 = function_ref @$SSq10nilLiteralxSgyt_tcfC : $@convention(method) <τ_0_0> (@thin Optional<τ_0_0>.Type) -> @out Optional<τ_0_0> // user: %4\n
+\ %4 = apply %3<@type>(%1, %2) : $@convention(method) <τ_0_0> (@thin Optional<τ_0_0>.Type) -> @out Optional<τ_0_0>\n
+\ %5 = load [trivial] %2 : $*Optional<@type>        // user: %7\n
+\ dealloc_stack %1 : $*Optional<@type>              // id: %6\n
+\ return %5 : $Optional<@type>                      // id: %7\n"
+      dependencies:
+        - file: 
+          file: "sil/nil_optional.sil"
 
 
 - mutation: 
@@ -67,31 +72,43 @@
       return: "()"
     actions:
       before_function_return: "\ \ %1 = tuple ()                                   // user: %2\n
-\ return %1 : $()                                 // id: %2"
+\ return %1 : $()                                 // id: %2\n"
 
 - access_mutation: 
     name: "Set Int to -1"
     required:
       type: "Int"
     actions:
-      mutate: "\ \ %1 = integer_literal $Builtin.Int64, -1        // user: %2\n
-\ %2 = struct $Int (%1 : $Builtin.Int64)        // user: %4\n
-\ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
-\ store %2 to %3 : $*Int                        // id: %4\n
-\ end_access %3 : $*Int                          // id: %5\n"
-      offset: 6
+      mutate: "\ \ %1 = metatype $@thin Int.Type                  // user: %4\n
+\ %2 = integer_literal $Builtin.Int2048, -1       // user: %4\n
+\ // function_ref Int.init(_builtinIntegerLiteral:)\n
+\ %3 = function_ref @$SSi22_builtinIntegerLiteralSiBi2048__tcfC : $@convention(method) (Builtin.Int2048, @thin Int.Type) -> Int // user: %4\n
+\ %4 = apply %3(%2, %1) : $@convention(method) (Builtin.Int2048, @thin Int.Type) -> Int // user: %6\n
+\ %5 = begin_access [modify] [unknown] #0 : $*Int // users: %7, %6\n
+\ assign %4 to %5 : $*Int                       // id: %6\n
+\ end_access %5 : $*Int                          // id: %7\n"
+      offset: 8
+    dependencies:
+        - file: 
+          file: "sil/zero_int.sil"
 
 - access_mutation: 
     name: "Set Int to 0"
     required:
       type: "Int"
     actions:
-      mutate: "\ \ %1 = integer_literal $Builtin.Int64, 0        // user: %2\n
-\ %2 = struct $Int (%1 : $Builtin.Int64)        // user: %4\n
-\ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
-\ store %2 to %3 : $*Int                        // id: %4\n
-\ end_access %3 : $*Int                          // id: %5\n"
-      offset: 6
+      mutate: "\ \ %1 = metatype $@thin Int.Type                  // user: %4\n
+\ %2 = integer_literal $Builtin.Int2048, 0       // user: %4\n
+\ // function_ref Int.init(_builtinIntegerLiteral:)\n
+\ %3 = function_ref @$SSi22_builtinIntegerLiteralSiBi2048__tcfC : $@convention(method) (Builtin.Int2048, @thin Int.Type) -> Int // user: %4\n
+\ %4 = apply %3(%2, %1) : $@convention(method) (Builtin.Int2048, @thin Int.Type) -> Int // user: %6\n
+\ %5 = begin_access [modify] [unknown] #0 : $*Int // users: %7, %6\n
+\ assign %4 to %5 : $*Int                       // id: %6\n
+\ end_access %5 : $*Int                          // id: %7\n"
+      offset: 8
+    dependencies:
+        - file: 
+          file: "sil/zero_int.sil"
 
 - access_mutation: 
     name: "Set String to empty"
@@ -105,8 +122,8 @@
 \ // function_ref String.init(_builtinStringLiteral:utf8CodeUnitCount:isASCII:)\n
 \ %5 = function_ref @$SSS21_builtinStringLiteral17utf8CodeUnitCount7isASCIISSBp_BwBi1_tcfC : $@convention(method) (Builtin.RawPointer, Builtin.Word, Builtin.Int1, @thin String.Type) -> @owned String // user: %6\n
 \ %6 = apply %5(%1, %2, %3, %4) : $@convention(method) (Builtin.RawPointer, Builtin.Word, Builtin.Int1, @thin String.Type) -> @owned String // user: %10\n
-\ %7 = begin_access [modify] [static] #0 : $*String // users: %11, %12\n
-\ store %6 to %7 : $*String                        // id: %11\n
+\ %7 = begin_access [modify] [unknown] #0 : $*String // users: %11, %12\n
+\ assign %6 to %7 : $*String                        // id: %11\n
 \ end_access %7 : $*String                          // id: %13\n"
       offset: 14
     dependencies:
