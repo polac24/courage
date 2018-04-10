@@ -69,6 +69,8 @@ module Fastlane
             new_token[:type]="global_variable"
           elsif line.include?(" = begin_access ")
             new_token[:type]="begin_access"
+          elsif line.start_with?("  return ")
+            new_token[:type]="return"
           elsif line.start_with?("  ")
            new_token[:type]="nested"
           elsif line.start_with?("//")

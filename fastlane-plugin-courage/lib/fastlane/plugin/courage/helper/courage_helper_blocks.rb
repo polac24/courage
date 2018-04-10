@@ -260,6 +260,16 @@ module Fastlane
         @comments.each{|x| output.puts x[:value]}
         output.puts(@definition[:value])
       end
+      def has_return
+        !return_position_index.nil?
+      end
+      def return_position_index
+        # return could be in a last bb (-1) or followed by empty line (other bb)
+        potential_return_indexes = [@body.length-1,@body.length-2]
+        potential_return_indexes.find {|i|
+          i if @body[i][:type] == "return"
+        }
+      end
       private def parse_block_number(line)
         return [/bb(\d*)/, 1]
       end

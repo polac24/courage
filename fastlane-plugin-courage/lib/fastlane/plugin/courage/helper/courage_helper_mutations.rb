@@ -80,21 +80,45 @@ module Fastlane
         return true
       end
       def print_mutation(function, index, all_symbols, output)
+        if @actions.replace_all.nil?
+          print_mutation_append(function, index, all_symbols, output)
+        else
+          print_mutation_replace(function, index, all_symbols, output)
+        end 
+      end
+      private def print_mutation_append(function, index, all_symbols, output)
         variables = @replaces.replaces(function)
         function.human_name.print(output)
         function.definition.print(output)
-        function.building_blocks[0..-2].each {|x| x.print(output)}
-        # last withtout return line
-        function.building_blocks[-1].print_head(output)
-        function.building_blocks[-1].body[0..-2].each {|x| output.puts x[:value]}
-        return_index, available = function.building_blocks[-1].body[-1][:value].match(/return %(\d+).*\/\/.*id:.*%(\d+)/).captures
+        # until return bb
+        return_bb_index = function.building_blocks.index {|x| x.has_return}
+        function.building_blocks[0...return_bb_index].each {|x| x.print(output)}
+        # until return line
+        return_bb = function.building_blocks[return_bb_index]
+        return_position_index = return_bb.return_position_index
+        return_bb.print_head(output)
+        return_bb.body[0...return_position_index].each {|x| output.puts x[:value]}
+        return_index, available = return_bb.body[return_position_index][:value].match(/return %(\d+).*\/\/.*id:.*%(\d+)/).captures
 
         @actions.before_return.print(output, available.to_i, return_index.to_i, variables)
+        return_bb.body[return_position_index+1..-1].each {|x| output.puts x[:value]}
 
+        #other bb 
+        function.building_blocks[(return_bb_index+1)..-1].each {|x| x.print_with_offset(output, @actions.before_return.offset, return_index.to_i)}
         output.puts (function.end[:value])
         output.puts ""
 
         @actions.dependencies.print_after_function(output, all_symbols)
+      end
+
+      private def print_mutation_replace(function, index, all_symbols, output)
+        function.human_name.print(output)
+        function.definition.print(output)
+
+        function.building_blocks[0].print_head(output)
+        @actions.replace_all.print(output, (function.building_blocks[0].arguments_count - 1), 0, [])
+        output.puts (function.end[:value])
+        output.puts ""
       end
     end
 
@@ -133,7 +157,10 @@ module Fastlane
     end
     class SILGenericMutationActions
       def initialize(object)
-        @before_return = SILGenericMutationAction.new(object["before_function_return"])
+        @before_return = nil
+        @replace_all = nil
+        @before_return = SILGenericMutationAction.new(object["before_function_return"]) if !object["before_function_return"].nil?
+        @replace_all = SILGenericMutationAction.new(object["replace"]) if !object["replace"].nil?
         @dependencies = SILDependencies.new(object["dependencies"])
       end
       def before_return
@@ -142,15 +169,17 @@ module Fastlane
       def dependencies
         @dependencies
       end
+      def replace_all
+        @replace_all
+      end
     end
 
     class SILGenericMutationAction
       def initialize(object)
-        if object.is_a? String
-          @string = object
-        elsif object["file"]
-          @fileName = object["file"]
-        end
+        return nil if object.nil?
+        @string = object["return"]
+        @offset = 0
+        @offset = object["offset"] if !object["offset"].nil?
       end
       def print(output, offset_index, return_index, variables)
         unless @string.nil?
@@ -177,6 +206,9 @@ module Fastlane
           prev_line.gsub(/@#{replace[:key]}/, "#{replace[:value]}")
         }
         line
+      end
+      def offset
+        @offset
       end
     end
 
