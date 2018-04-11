@@ -243,8 +243,11 @@ module Fastlane
     class FunctionMutation
       def self.isSupported(function)
         return false unless function.type == "function"
-        return false unless !function.definition.isExternal
-        return false unless !function.definition.attributes.include?("transparent")
+        return false if function.human_name.name.end_with?(".__deallocating_deinit")
+        return false if function.human_name.name.end_with?(".getter")
+        return false if function.human_name.name.end_with?(".setter")
+        return false if function.definition.isExternal
+        return false if function.definition.attributes.include?("transparent")
         return true
       end
     end

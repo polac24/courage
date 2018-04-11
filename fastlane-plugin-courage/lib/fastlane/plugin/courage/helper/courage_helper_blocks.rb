@@ -154,6 +154,9 @@ module Fastlane
       def to_s
         @name
       end
+      def name
+        @name
+      end
     end
 
     class SILFunctionDefinition < SILBlock
