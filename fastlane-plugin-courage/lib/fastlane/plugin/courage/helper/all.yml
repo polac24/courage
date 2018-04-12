@@ -66,6 +66,29 @@
 \ return %4 : $Optional<@type>                   // id: %6\n"
         offset: 7
 
+- mutation: 
+    name: "Return false"
+    required:
+      return:
+        type: "Bool"
+    actions:
+      before_function_return: 
+        return: "\ \ %1 = integer_literal $Builtin.Int1, 0           // user: %2\n
+\ \ %2 = struct $Bool (%1 : $Builtin.Int1)          // user: %3\n
+\ \ return %2 : $Bool                               // id: %3\n"
+        offset: 4
+
+- mutation: 
+    name: "Return true"
+    required:
+      return:
+        type: "Bool"
+    actions:
+      before_function_return: 
+        return: "\ \ %1 = integer_literal $Builtin.Int1, -1           // user: %2\n
+\ \ %2 = struct $Bool (%1 : $Builtin.Int1)          // user: %3\n
+\ \ return %2 : $Bool                               // id: %3\n"
+        offset: 4
 
 - mutation: 
     name: "No operation"
