@@ -48,13 +48,16 @@ module Fastlane
           end
         end
 
-        "#{mutation_representation.name} for #{block.human_name}"
+        mutation_name(i)
       end
       def print_mutation_to_file(index, fileName)
         output = File.open(fileName,"w" )
         mutation_summary = print_mutation(index, output)
         output.close
         mutation_summary
+      end
+      def mutation_name(i)
+        "#{@all_mutations[i][:mutation].name} for #{@all_mutations[i][:block].human_name}"
       end
       def mutationsCount
         @all_mutations.count
@@ -246,6 +249,8 @@ module Fastlane
         return false if function.human_name.name.end_with?(".__deallocating_deinit")
         return false if function.human_name.name.end_with?(".getter")
         return false if function.human_name.name.end_with?(".setter")
+        return false if function.human_name.name.end_with?(".__ivar_destroyer")
+        return false if function.human_name.name.end_with?(".materializeForSet")
         return false if function.definition.isExternal
         return false if function.definition.attributes.include?("transparent")
         return true

@@ -27,6 +27,8 @@ module Fastlane
         compileGroup = false
         linkGroup = false
         enabledTarget = true
+        verbose = false 
+        verbose = true if params[:verbose] == "true"
 
         prefix_hash = [
         {
@@ -63,9 +65,9 @@ module Fastlane
 
               FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: true,
-                                      print_command: true,
+                                      print_command: verbose,
                                              prefix: prefix_hash,
-                                            loading: "Loading...",
+                                            loading: "Building project...",
                                               error: proc do |error_output|
                                                 begin
                                                   exit_status = $?.exitstatus
@@ -78,22 +80,21 @@ module Fastlane
                                                 end
                                               end)
 
-if !buildCommands.empty?
+              if !buildCommands.empty?
                 all_builds.push(buildCommands)
                 buildCommands = []
               end
 
               all_builds.each {|buildCommands|
-                files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand)
+                files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
 
-                start_mutations(files:files, params: params)
+                start_mutations(files:files, params: params, verbose: verbose)
               }
       end
 
-      def self.make_sibs(commands:commands, linkCommand: linkCommand)
+      def self.make_sibs(commands:commands, linkCommand: linkCommand, verbose: verbose)
         files = []
         all_swifts = commands.reduce([]) {|prev,file| prev.push(file[/\s-primary-file\s(.*?\.swift)\s/,1])}
-        puts all_swifts
         commands.each do |element|
           compilingFile = element[/\s-primary-file\s(.*?\.swift)\s/,1]
           oFile = element[/\s-o\s(.*?[^\\])\s/,1]
@@ -115,23 +116,23 @@ if !buildCommands.empty?
           files.push({sibPath:sibFile, command: element, compilingFile:compilingFile, linkCommand: linkCommand, oFile:oFile})
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: false,
-                                      print_command: true)
+                                      print_command: verbose)
 
         end
         make_sils(files:files)
         prepare_sils(files:files)
       end
 
-      def self.make_sils(files:files)
+      def self.make_sils(files:files, verbose: verbose)
         files.each_with_index do |element, index|
           command = element[:command].gsub('.o ', '.sil ') + " -emit-sil "
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: false,
-                                      print_command: true)
+                                      print_command: verbose)
         end
       end
 
-      def self.prepare_sils(files:files)
+      def self.prepare_sils(files:files, verbose: verbose)
         totalFiles = []
         files.each_with_index do |element, index|
           other_files = (files.first(index) + files.drop(index+1))
@@ -150,10 +151,22 @@ if !buildCommands.empty?
         totalFiles
       end
 
-      def self.start_mutations(files:files, params:params)
+      def self.start_mutations(files:files, params:params, verbose: verbose)
           mutation_succeeded = []   
           mutation_failed = []                        
           mutation_skipped = []     
+
+          total_mutations = files.reverse.inject([]) {|prev, file|
+            parsed = Helper::SILParser.new(file[:sil_reference])
+            parsedBlocks = parsed.parsed
+            mutations = Helper::SILMutations.new(parsedBlocks)
+            mutations_count = mutations.mutationsCount
+            mutations_names = (0...mutations_count).map{|x| mutations.mutation_name(x)}
+            prev+mutations_names
+          }
+
+          UI.important("Found #{total_mutations.count} mutations.")
+          total_mutations.each_with_index{|x, index| UI.important("#{index+1}. #{x}")}
 
         files.reverse_each do |file|      
 
@@ -162,17 +175,18 @@ if !buildCommands.empty?
           output = file[:oFile]
           `mv #{output} #{output}_`
           # Mutate - TD
-          # `cp #{file[:sil_reference]}  #{file[:mutationSill]}`
           parsed = Helper::SILParser.new(file[:sil_reference])
           parsedBlocks = parsed.parsed
           mutations = Helper::SILMutations.new(parsedBlocks)
 
+          
 
           if mutations.mutationsCount > 0
             # ensure no-mutation sil suceeds
             parsed.printToFile(file[:mutationSill])
+            #UI.message("Mutations for file: #{file[:originalSil]}")
 
-            if rebuild_and_test(command:command, linkCommand:linkCommand, params:params) != true
+            if rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose) != true
               #mutation cannot be built from .sil
                mutation_skipped.push(file)
                UI.error("File ineligable for mutation: #{output}")
@@ -180,17 +194,18 @@ if !buildCommands.empty?
               # mutation eligable
               for i in 0..(mutations.mutationsCount - 1)
                 mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
+                UI.message("Running mutation: #{mutation_name}...")
                 
-                test_result = rebuild_and_test(command:command, linkCommand:linkCommand, params:params)
+                test_result = rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose)
                 case test_result
                 when nil
                   mutation_skipped.push(mutation_name)
-                  UI.error("Mutation #{mutation_name} cannot be verfied!")
+                  UI.error("⚠️: Mutation #{mutation_name} cannot be verfied!")
                 when true
-                  UI.error("Mutant survived: #{mutation_name}!")
+                  UI.error("🛑 Mutant survived: #{mutation_name}!")
                   mutation_failed.push(mutation_name)
                 when false
-                  UI.success("Mutation killed: #{mutation_name}!")
+                  UI.success("✅ Mutation killed: #{mutation_name}!")
                   mutation_succeeded.push(mutation_name)
                 end
               end
@@ -198,14 +213,20 @@ if !buildCommands.empty?
           end
           `mv #{output}_ #{output}`
         end
-        UI.message("-----------")
-        UI.message("Succeeded:")
-        UI.message("#{mutation_succeeded}")
-        UI.message("Failed:")
-        UI.message("#{mutation_failed}")
-        UI.message("Skipped:")
-        UI.message("#{mutation_skipped.map{|a| a[:sil_reference]}}")
-        UI.message("-----------")
+        if verbose 
+          UI.message("-----------")
+          UI.message("Succeeded:")
+          UI.message("#{mutation_succeeded}")
+          UI.message("Failed:")
+          UI.message("#{mutation_failed}")
+          UI.message("Skipped:")
+          UI.message("#{mutation_skipped.map{|a| a[:sil_reference]}}")
+          UI.message("-----------")
+        end
+        successes = mutation_succeeded.count
+        failures = mutation_failed.count
+        UI.important("Tests quality: #{successes*100/(successes+failures)}% (#{successes}/#{successes+failures})")
+
       end
 
       def self.start_device(device:device)
@@ -221,18 +242,18 @@ if !buildCommands.empty?
                                       )
       end
 
-      def self.rebuild_and_test(command:command, linkCommand:linkCommand, params:params)
+      def self.rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose)
         begin
           # Build after mutation
           FastlaneCore::CommandExecutor.execute(command: command,
-                                          print_all: true,
-                                      print_command: true
+                                          print_all: verbose,
+                                      print_command: verbose
                                       )
 
           # Link after mutation
           FastlaneCore::CommandExecutor.execute(command: linkCommand,
-                                          print_all: true,
-                                      print_command: true
+                                          print_all: verbose,
+                                      print_command: verbose
                                       )
 
 
@@ -243,7 +264,7 @@ if !buildCommands.empty?
           begin
             FastlaneCore::CommandExecutor.execute(command: test_command,
                                             print_all: false,
-                                        print_command: true)
+                                        print_command: verbose)
             return true
           rescue => testEx
             return false
@@ -298,6 +319,11 @@ if !buildCommands.empty?
                                   optional: false,
                                       type: String),
           FastlaneCore::ConfigItem.new(key: :sil_file,
+                                  env_name: "COURAGE_YOUR_OPTION",
+                               description: "A description of your option",
+                                  optional: true,
+                                      type: String),
+          FastlaneCore::ConfigItem.new(key: :verbose,
                                   env_name: "COURAGE_YOUR_OPTION",
                                description: "A description of your option",
                                   optional: true,
