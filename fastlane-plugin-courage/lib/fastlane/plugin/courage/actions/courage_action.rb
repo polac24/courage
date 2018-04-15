@@ -27,8 +27,7 @@ module Fastlane
         compileGroup = false
         linkGroup = false
         enabledTarget = true
-        verbose = false 
-        verbose = true if params[:verbose] == "true"
+        verbose = params[:verbose] 
 
         prefix_hash = [
         {
@@ -119,7 +118,7 @@ module Fastlane
                                       print_command: verbose)
 
         end
-        make_sils(files:files)
+        make_sils(files:files, verbose: verbose)
         prepare_sils(files:files)
       end
 
@@ -326,8 +325,8 @@ module Fastlane
           FastlaneCore::ConfigItem.new(key: :verbose,
                                   env_name: "COURAGE_YOUR_OPTION",
                                description: "A description of your option",
-                                  optional: true,
-                                      type: String)
+                                  type: Boolean,
+                                  default_value: false)
         ]
       end
 
