@@ -18,6 +18,9 @@ module Fastlane
           when "global_variable"
             return SILBlock.new(lines) if lines.count > 0 
             return SILGlobalVariable.build(provider)
+          when "coverage_map"
+            return SILBlock.new(lines) if lines.count > 0 
+            return SILCoverageMap.build(provider)
           else
             lines.push(provider.read)
           end
@@ -225,6 +228,33 @@ module Fastlane
       end
       def to_s
         return "#{@function_name} : #{@argument_type}->#{@return_type}"
+      end
+    end
+
+    class SILCoverageMap < SILBlock
+      def self.build(provider)
+        lines = []
+        loop do
+          line = provider.read
+          lines.append(line)
+          break if line[:type] == "end"
+        end
+        SILCoverageMap.new(lines)
+      end
+      def initialize(lines)
+        super(lines)
+        @file_name, @name, @human_name= lines[1][:value].match(/sil_coverage_map\s*"([^"]+)"\s(\S*).*{\s*\/\/\s*(.*)/).captures
+        # append @ at the front
+        @name = "@#{@name}"
+      end
+      def file_name
+        @file_name
+      end
+      def name
+        @name
+      end
+      def human_name
+        @human_name
       end
     end
 

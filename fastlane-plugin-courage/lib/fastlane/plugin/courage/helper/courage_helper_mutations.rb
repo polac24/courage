@@ -4,7 +4,7 @@ module Fastlane
 
   module Helper
     class SILMutations
-      def initialize(blocks)
+      def initialize(blocks, allowed_symbols)
         @blocks = blocks
         @all_symbols = blocks.select{|x| ["function", "function_definition", "global_variable"].include?(x.type)}.map{|function|
           function.definition.name
@@ -22,7 +22,7 @@ module Fastlane
         all_mutations = []
         blocks.each { |block|
           mutation_defs.each{|mutation|
-            if mutation.isSupported(block)
+            if mutation.isSupported(block, allowed_symbols)
               new_mutations = (0...mutation.count(block)).map{|x|
                 {block: block, mutation: mutation, index:x}
               }
@@ -77,8 +77,8 @@ module Fastlane
       def count(function)
         1
       end
-      def isSupported(function)
-        return false unless FunctionMutation.isSupported(function) 
+      def isSupported(function, allowed_symbols)
+        return false unless FunctionMutation.isSupported(function, allowed_symbols) 
         return false unless @required.isSupported(function)
         return true
       end
@@ -244,15 +244,9 @@ module Fastlane
     end
 
     class FunctionMutation
-      def self.isSupported(function)
+      def self.isSupported(function, allowed_symbols)
         return false unless function.type == "function"
-        return false if function.human_name.name.end_with?(".__deallocating_deinit")
-        return false if function.human_name.name.end_with?(".getter")
-        return false if function.human_name.name.end_with?(".setter")
-        return false if function.human_name.name.end_with?(".__ivar_destroyer")
-        return false if function.human_name.name.end_with?(".materializeForSet")
-        return false if function.definition.isExternal
-        return false if function.definition.attributes.include?("transparent")
+        return false if !allowed_symbols.include?(function.definition.name)
         return true
       end
     end
@@ -272,8 +266,8 @@ module Fastlane
       def to_s
         @name
       end
-      def isSupported(function)
-        return false unless FunctionMutation.isSupported(function) 
+      def isSupported(function, allowed_symbols)
+        return false unless FunctionMutation.isSupported(function, allowed_symbols) 
         return false unless @required.isSupported(function)
         return true
       end

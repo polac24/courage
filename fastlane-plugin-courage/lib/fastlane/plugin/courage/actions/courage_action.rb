@@ -8,8 +8,10 @@ module Fastlane
 
         if  params[:sil_file] 
           #Helper::SILParser.new(params[:sil_file]).print($stdout)
-          parsed = Helper::SILParser.new(params[:sil_file]).parsed
-          mutations = Helper::SILMutations.new(parsed)
+          parsed = Helper::SILParser.new(params[:sil_file])
+          puts parsed.explicit_symbols
+
+          mutations = Helper::SILMutations.new(parsed.parsed)
           puts mutations.mutationsCount
           mutations.print_mutation(0, $stdout)
           return 
@@ -128,6 +130,12 @@ module Fastlane
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: false,
                                       print_command: verbose)
+
+          # include 
+          command = element[:command].gsub('.o ', '_profiles.sil ') + " -emit-sil -profile-coverage-mapping -profile-generate"
+          FastlaneCore::CommandExecutor.execute(command: command,
+                                          print_all: false,
+                                      print_command: verbose)
         end
       end
 
@@ -139,12 +147,14 @@ module Fastlane
           sil = element[:sibPath].gsub('.sib', '.sil')
           sil_mutated = sil.sub('.sil', '_.sil')
           sil_reference = sil.sub('.sil', '_org.sil')
+          sil_profiles_reference = sil.sub('.sil', '_profiles.sil')
+          # workaround for missing SIL imports
           `grep "import" #{element[:compilingFile]} > #{sil_mutated}`
           `cat #{sil} >> #{sil_mutated}`
           `cp #{sil_mutated} #{sil_reference}`
           command = element[:command].gsub(/\s(\S*?\.swift)/, ' ').sub(' -primary-file ',' ') + " #{all_sibs} -primary-file #{sil_mutated}"
       
-          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, linkCommand: element[:linkCommand], oFile:element[:oFile]}
+          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, sil_with_profiles: sil_profiles_reference, linkCommand: element[:linkCommand], oFile:element[:oFile]}
           totalFiles.push(file)
         end
         totalFiles
@@ -155,10 +165,12 @@ module Fastlane
           mutation_failed = []                        
           mutation_skipped = []     
 
+          # TODO: optimize searching for mutations
           total_mutations = files.reverse.inject([]) {|prev, file|
+            allowed_symbols = Helper::SILParser.new(file[:sil_with_profiles]).explicit_symbols
             parsed = Helper::SILParser.new(file[:sil_reference])
             parsedBlocks = parsed.parsed
-            mutations = Helper::SILMutations.new(parsedBlocks)
+            mutations = Helper::SILMutations.new(parsedBlocks, allowed_symbols)
             mutations_count = mutations.mutationsCount
             mutations_names = (0...mutations_count).map{|x| mutations.mutation_name(x)}
             prev+mutations_names
@@ -174,9 +186,10 @@ module Fastlane
           output = file[:oFile]
           `mv #{output} #{output}_`
           # Mutate - TD
+          allowed_symbols = Helper::SILParser.new(file[:sil_with_profiles]).explicit_symbols
           parsed = Helper::SILParser.new(file[:sil_reference])
           parsedBlocks = parsed.parsed
-          mutations = Helper::SILMutations.new(parsedBlocks)
+          mutations = Helper::SILMutations.new(parsedBlocks, allowed_symbols)
 
           
 

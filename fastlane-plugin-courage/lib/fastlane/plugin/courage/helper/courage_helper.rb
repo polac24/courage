@@ -40,6 +40,12 @@ module Fastlane
         }
       end
 
+      def explicit_symbols
+        @parsed.select{|block|
+          block.is_a?(SILCoverageMap)
+        }.inject([]) {|sum, n| sum.append(n.name) }
+      end
+
 
       def parse(tokens)
         parsed = []
@@ -65,8 +71,10 @@ module Fastlane
             else
               new_token[:type]="function_definition"
             end
-          elsif line.start_with?("sil_global")
+          elsif line.start_with?("sil_global ")
             new_token[:type]="global_variable"
+          elsif line.start_with?("sil_coverage_map ")
+            new_token[:type]="coverage_map"
           elsif line.include?(" = begin_access ")
             new_token[:type]="begin_access"
           elsif line.start_with?("  return ")
