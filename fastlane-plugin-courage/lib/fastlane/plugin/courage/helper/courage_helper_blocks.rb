@@ -243,8 +243,8 @@ module Fastlane
       end
       def initialize(lines)
         super(lines)
-        @file_name, @name, @human_name= lines[1][:value].match(/sil_coverage_map\s*"([^"]+)"\s(\S*).*{\s*\/\/\s*(.*)/).captures
-        # append @ at the front
+        @file_name, @name, @human_name= lines[1][:value].match(/sil_coverage_map\s*"([^"]+)"\s"?([^\s"]*)"?.*{\s*\/\/\s*(.*)/).captures
+        # append @ at the front to match sil definition
         @name = "@#{@name}"
       end
       def file_name

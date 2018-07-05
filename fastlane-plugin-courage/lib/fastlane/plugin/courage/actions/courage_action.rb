@@ -8,10 +8,11 @@ module Fastlane
 
         if  params[:sil_file] 
           #Helper::SILParser.new(params[:sil_file]).print($stdout)
+          allowed_symbols = Helper::SILParser.new(params[:sil_file].gsub(/\.sil/, '_profiles.sil')).explicit_symbols
           parsed = Helper::SILParser.new(params[:sil_file])
           puts parsed.explicit_symbols
 
-          mutations = Helper::SILMutations.new(parsed.parsed)
+          mutations = Helper::SILMutations.new(parsed.parsed, allowed_symbols)
           puts mutations.mutationsCount
           mutations.print_mutation(0, $stdout)
           return 
@@ -29,6 +30,7 @@ module Fastlane
         compileGroup = false
         linkGroup = false
         enabledTarget = true
+        targetName = ""
         verbose = params[:verbose] 
 
         prefix_hash = [
@@ -36,14 +38,25 @@ module Fastlane
           prefix: "",
           block: proc do |value|
 
-            if value.include?("=== BUILD TARGET")
+            targetMatcher = lambda { |line| 
+              if currentTarget = line[/\s\(in\starget\:\s([^\)]+)\)/, 1] 
+                if currentTarget != targetName
+                  return currentTarget
+                end
+              end
+              targetName
+            }
+            # support old & new build system (new build system after "||")
+            if value.include?("=== BUILD TARGET") || (targetMatcher.call(value) != targetName)
               if !buildCommands.empty?
                 all_builds.push(buildCommands)
                 buildCommands = []
               end
-              enabledTarget = value.include?("=== BUILD TARGET #{params[:target]}")
+              targetName = targetMatcher.call(value)
+              enabledTarget = (value.include?("=== BUILD TARGET #{params[:target]}") || targetName == params[:target])
               linkGroup = false
             end
+
 
             if value.to_s.empty? 
               compileGroup = false
