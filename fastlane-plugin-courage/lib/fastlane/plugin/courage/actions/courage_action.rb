@@ -285,7 +285,7 @@ module Fastlane
           project = "-project #{params[:project]}"
           project = "-workspace #{params[:workspace]}" if params[:workspace]
 
-          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
+          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -parallel-testing-enabled NO -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
           begin
             FastlaneCore::CommandExecutor.execute(command: test_command,
                                             print_all: false,
