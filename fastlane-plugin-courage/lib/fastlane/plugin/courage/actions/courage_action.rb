@@ -31,6 +31,7 @@ module Fastlane
         linkGroup = false
         enabledTarget = true
         targetName = ""
+        fileLists = {}
         verbose = params[:verbose] 
 
         prefix_hash = [
@@ -65,6 +66,16 @@ module Fastlane
             elsif value.include?("CompileSwift")
               compileGroup = true
             elsif compileGroup && value.include?("/swift ") && enabledTarget
+              puts value
+              # copy fileList into a local file
+              if fileList = value[/\s\-filelist\s(\S+)/,1] 
+                if fileLists["#{fileList}"].nil?
+                  copiedFileListsPath = "#{fileList}_"
+                  FastlaneCore::CommandExecutor.execute(command: "cp -r #{fileList} #{copiedFileListsPath}")
+                  fileLists["#{fileList}"] = copiedFileListsPath
+                end
+              end
+              value = fileLists.reduce(value) {|prevValue,(key, value)| prevValue.gsub(key, value)}
               buildCommands.push(value)
             elsif value.include?("Ld")
               linkGroup = true
@@ -77,33 +88,38 @@ module Fastlane
         }
       ]
 
-              FastlaneCore::CommandExecutor.execute(command: command,
-                                          print_all: true,
-                                      print_command: verbose,
-                                             prefix: prefix_hash,
-                                            loading: "Building project...",
-                                              error: proc do |error_output|
-                                                begin
-                                                  exit_status = $?.exitstatus
-                                                  ErrorHandler.handle_build_error(error_output)
-                                                rescue => ex
-                                                  SlackPoster.new.run({
-                                                    build_errors: 1
-                                                  })
-                                                  raise ex
-                                                end
-                                              end)
+      FastlaneCore::CommandExecutor.execute(command: command,
+                                  print_all: true,
+                              print_command: verbose,
+                                     prefix: prefix_hash,
+                                    loading: "Building project...",
+                                      error: proc do |error_output|
+                                        begin
+                                          exit_status = $?.exitstatus
+                                          ErrorHandler.handle_build_error(error_output)
+                                        rescue => ex
+                                          SlackPoster.new.run({
+                                            build_errors: 1
+                                          })
+                                          raise ex
+                                        end
+                                      end)
 
-              if !buildCommands.empty?
-                all_builds.push(buildCommands)
-                buildCommands = []
-              end
+      if !buildCommands.empty?
+        all_builds.push(buildCommands)
+        buildCommands = []
+      end
 
-              all_builds.each {|buildCommands|
-                files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
+      all_builds.each {|buildCommands|
+        files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
 
-                start_mutations(files:files, params: params, verbose: verbose)
-              }
+        start_mutations(files:files, params: params, verbose: verbose)
+      }
+      ensure
+        # remove temprary -filelist copies
+        fileLists.each do |origianal_path, copied_path|
+          FastlaneCore::CommandExecutor.execute(command: "rm #{copied_path}")
+        end
       end
 
       def self.make_sibs(commands:commands, linkCommand: linkCommand, verbose: verbose)
@@ -114,7 +130,6 @@ module Fastlane
           oFile = element[/\s-o\s(.*?[^\\])\s/,1]
 
           # filelist prepare: TODO
-          element = element.gsub(/\s-filelist\s(\S*?)\s/, ' ')
           element = element.gsub(/\s-primary-file\s(.*?\.swift)\s/, ' ')
           element = element.gsub(/\s-profile-coverage-mapping\s/, ' ')
           element = element.gsub(/\s-profile-generate\s/, ' ')
