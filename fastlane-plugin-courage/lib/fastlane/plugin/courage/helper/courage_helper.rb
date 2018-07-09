@@ -62,7 +62,7 @@ module Fastlane
       def tokenize(path)
         number = 0
         tokens = []
-        File.readlines(path).each do |line|
+        File.readlines(path.gsub("\"",'')).each do |line|
           line = line.chomp
           new_token = {}
           if line.start_with?("sil ") 

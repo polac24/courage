@@ -124,27 +124,28 @@ module Fastlane
 
       def self.make_sibs(commands:commands, linkCommand: linkCommand, verbose: verbose)
         files = []
-        all_swifts = commands.reduce([]) {|prev,file| prev.push(file[/\s-primary-file\s(.*?\.swift)\s/,1])}
+        all_swifts = commands.reduce([]) {|prev,file| prev.push(file[/\s-primary-file\s(.*?\.swift|\".*\.swift\")\s/,1])}
         commands.each do |element|
-          compilingFile = element[/\s-primary-file\s(.*?\.swift)\s/,1]
-          oFile = element[/\s-o\s(.*?[^\\])\s/,1]
+          compilingFile = element[/\s-primary-file\s(.*?\.swift|\".*\.swift\")\s/,1]
+          oFile = element[/\s-o\s([^\"].*?[^\\]|\".*?\")\s/,1]
 
           # filelist prepare: TODO
-          element = element.gsub(/\s-primary-file\s(.*?\.swift)\s/, ' ')
+          element = element.gsub(/\s-filelist\s(\S*?)\s/, ' ')
+          element = element.gsub(/\s-primary-file\s(.*?\.swift|\".*\.swift\")\s/, ' ')
           element = element.gsub(/\s-profile-coverage-mapping\s/, ' ')
           element = element.gsub(/\s-profile-generate\s/, ' ')
-          element = element.gsub(/\s(\S*?\.swift)\s/, ' ')
+          element = element.gsub(/\s(\S*?\.swift|\".*\.swift\")\s/, ' ')
           element = all_swifts.reduce(element){ |prev, file| prev.sub(file, ' ') }
           my_swifts = all_swifts - [compilingFile]
           element = element + " -primary-file #{compilingFile} " + my_swifts.reduce(" "){|prev,file| prev + file + " "}
 
 
 
-          command = element.gsub(/-emit-module-path.*\.swiftmodule /, ' ').gsub('.o ', '.sib ') + " -emit-sib"
-          sibFile = command[/\s-o\s(.*?[^\\])\s/,1]
+          command = element.gsub(/-emit-module-path.*?\.swiftmodule\"?\s/, ' ').gsub('.o', '.sib') + " -emit-sib"
+          sibFile = command[/\s-o\s([^\"].*?[^\\]|\".*?\")\s/,1]
           files.push({sibPath:sibFile, command: element, compilingFile:compilingFile, linkCommand: linkCommand, oFile:oFile})
           FastlaneCore::CommandExecutor.execute(command: command,
-                                          print_all: false,
+                                          print_all: true,
                                       print_command: verbose)
 
         end
@@ -154,13 +155,13 @@ module Fastlane
 
       def self.make_sils(files:files, verbose: verbose)
         files.each_with_index do |element, index|
-          command = element[:command].gsub('.o ', '.sil ') + " -emit-sil "
+          command = element[:command].gsub('.o', '.sil') + " -emit-sil "
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: false,
                                       print_command: verbose)
 
           # include 
-          command = element[:command].gsub('.o ', '_profiles.sil ') + " -emit-sil -profile-coverage-mapping -profile-generate"
+          command = element[:command].gsub('.o', '_profiles.sil') + " -emit-sil -profile-coverage-mapping -profile-generate"
           FastlaneCore::CommandExecutor.execute(command: command,
                                           print_all: false,
                                       print_command: verbose)
@@ -180,7 +181,7 @@ module Fastlane
           `grep "import" #{element[:compilingFile]} > #{sil_mutated}`
           `cat #{sil} >> #{sil_mutated}`
           `cp #{sil_mutated} #{sil_reference}`
-          command = element[:command].gsub(/\s(\S*?\.swift)/, ' ').sub(' -primary-file ',' ') + " #{all_sibs} -primary-file #{sil_mutated}"
+          command = element[:command].gsub(/\s(\S*?\.swift|\".*\.swift\")/, ' ').sub(' -primary-file ',' ') + " #{all_sibs} -primary-file #{sil_mutated}"
       
           file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, sil_with_profiles: sil_profiles_reference, linkCommand: element[:linkCommand], oFile:element[:oFile]}
           totalFiles.push(file)
@@ -212,7 +213,8 @@ module Fastlane
           command = file[:rebuildCommand] + " -assume-parsing-unqualified-ownership-sil"
           linkCommand = file[:linkCommand]
           output = file[:oFile]
-          `mv #{output} #{output}_`
+          new_output = output.gsub(".o", ".o_")
+          `mv #{output} #{new_output}`
           # Mutate - TD
           allowed_symbols = Helper::SILParser.new(file[:sil_with_profiles]).explicit_symbols
           parsed = Helper::SILParser.new(file[:sil_reference])
