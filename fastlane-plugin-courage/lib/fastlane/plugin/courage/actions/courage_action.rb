@@ -183,7 +183,7 @@ module Fastlane
           `cp #{sil_mutated} #{sil_reference}`
           command = element[:command].gsub(/\s(\S*?\.swift|\".*\.swift\")/, ' ').sub(' -primary-file ',' ') + " #{all_sibs} -primary-file #{sil_mutated}"
       
-          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, sil_with_profiles: sil_profiles_reference, linkCommand: element[:linkCommand], oFile:element[:oFile]}
+          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, sil_with_profiles: sil_profiles_reference, linkCommand: element[:linkCommand], oFile:element[:oFile], compilingFile: element[:compilingFile]}
           totalFiles.push(file)
         end
         totalFiles
@@ -230,8 +230,8 @@ module Fastlane
 
             if rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose) != true
               #mutation cannot be built from .sil
-               mutation_skipped.push(file)
-               UI.error("File ineligable for mutation: #{output}")
+               mutation_skipped.push("Unsupported file: #{file[:compilingFile]}")
+               UI.error("File ineligable for mutation: #{file[:compilingFile]}")
             else
               # mutation eligable
               for i in 0..(mutations.mutationsCount - 1)
@@ -262,12 +262,16 @@ module Fastlane
           UI.message("Failed:")
           UI.message("#{mutation_failed}")
           UI.message("Skipped:")
-          UI.message("#{mutation_skipped.map{|a| a[:sil_reference]}}")
+          UI.message("#{mutation_skipped}")
           UI.message("-----------")
         end
         successes = mutation_succeeded.count
         failures = mutation_failed.count
-        UI.important("Tests quality: #{successes*100/(successes+failures)}% (#{successes}/#{successes+failures})")
+        if successes + failures == 0
+          UI.important("Tests quality: 0%")
+        else
+          UI.important("Tests quality: #{successes*100/(successes+failures)}% (#{successes}/#{successes+failures})")
+        end
 
       end
 
