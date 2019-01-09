@@ -1,6 +1,6 @@
 
 - mutation: 
-    name: "Invert Array"
+    name: "Return reversed Array"
     required:
       return: 
         type: "Array"
@@ -11,18 +11,41 @@
         return: "\ \ %1 = alloc_stack $Array<@type>                // users: %2, %5, %4\n
 \ store #0 to %1 : $*Array<@type>              // id: %2\n
 \ //function_ref Sequence.reversed()\n
-\ %3 = function_ref @$Ss8SequencePsE8reversedSay7ElementQzGyF : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element> // user: %4\n
+\ %3 = function_ref @$SSTsE8reversedSay7ElementQzGyF : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element> // user: %4\n
 \ %4 = apply %3<[@type]>(%1) : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element> // user: %8\n
-\ dealloc_stack %1 : $*Array<@type>             // id: %5\n
-\ return %4 : $Array<@type>                     // id: %8\n"
-        offset: 9
+\ destroy_addr %1 : $*Array<@type>             // id: %5\n
+\ dealloc_stack %1 : $*Array<@type>             // id: %6\n
+\ return %4 : $Array<@type>                     // id: %7\n"
+        offset: 8
       dependencies:
         - file: 
           file: "sil/revesed_array.sil"
 
+- mutation: 
+    name: "Return shuffled Array"
+    required:
+      return: 
+        type: "Array"
+        generic: 
+          variable: "type"
+    actions:
+      before_function_return: 
+        return: "\ \ %1 = alloc_stack $Array<@type>                // users: %2, %5, %4\n
+\ store #0 to %1 : $*Array<@type>              // id: %2\n
+\ // function_ref Sequence.shuffled()\n
+\ %3 = function_ref @$SSTsE8shuffledSay7ElementQzGyF : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element> // user: %4\n
+\ %4 = apply %3<[@type]>(%1) : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element> // user: %8\n
+\ destroy_addr %1 : $*Array<@type>             // id: %5\n
+\ dealloc_stack %1 : $*Array<@type>             // id: %6\n
+\ return %4 : $Array<@type>                     // id: %7\n"
+        offset: 8
+      dependencies:
+        - file: 
+          file: "sil/shuffle_array.sil"
+
 
 - mutation: 
-    name: "Empty Array"
+    name: "Return empty Array"
     required:
       return: 
         type: "Array"
