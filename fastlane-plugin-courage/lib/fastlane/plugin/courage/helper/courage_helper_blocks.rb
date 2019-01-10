@@ -328,22 +328,24 @@ module Fastlane
       def self.readAll(lines_provider)
         accesses = []
         loop do
-          line = lines_provider.peek
+          line = lines_provider.peek()
           break if line.nil?
           if line[:type] == "begin_access"
               accesses.push(SILAccess.new(lines_provider))
+          elsif line[:type] == "store"
+              accesses.push(SILFreeFallAccess.new(lines_provider))
+          else
+              lines_provider.read()
           end
-          lines_provider.read
         end
         accesses
       end
       def initialize(lines_provider)
         @line_number = lines_provider.index
-        line = lines_provider.read
+        line = lines_provider.read()
         @id, modifiers, @access_id, @type = line[:value].match(/%(\d+) = begin_access([\s\S\[\]]*) %(\d+) : \$\*(\S*) /).captures
         @modifiers = modifiers.match(/\[(\S+)\]/).captures
-        @offset_end = find_end_access(lines_provider, @id, @type)
-        @last_used_ids = find_end_ids(lines_provider, @offset_end)
+        @offset_end, @last_stored_id , @last_used_ids = read_to_end_access(lines_provider, @id, @type)
       end
       def access_type
         @type
@@ -366,22 +368,47 @@ module Fastlane
       def last_used_ids
         @last_used_ids
       end
-      def to_s
-        "id: #{@id}, end_offset: #{@offset_end}, type: #{@type}, on: #{@access_id}, last_id: #{@last_used_ids}"
+      def last_stored_id
+        @last_stored_id
       end
-      private def find_end_access(lines_provider, id, type)
+      def to_s
+        "id: #{@id}, end_offset: #{@offset_end}, type: #{@type}, on: #{@access_id}, last_id: #{@last_used_ids}, last_stored_id: #{@last_stored_id}"
+      end
+      private def read_to_end_access(lines_provider, id, type)
         i = 0
+        last_store_id = nil
+        end_id = nil
+
         loop do
-          line = lines_provider.peek_custom(i)
-          return nil if line.nil?
-          return i if / end_access %#{id} : \$\*#{type} /.match? (line[:value])
+          line = lines_provider.read()
+          return [nil, nil, nil] if line.nil?
+
+          if match = line[:value].match(/\/\/\sid:\s%(\d+)/ )
+            end_id = match.captures[0].to_i
+          end
+          if match = line[:value].match(/store %(\d+) to %#{id} : \$\*#{type}/ )
+            last_store_id = match.captures[0].to_i
+          end
+          break if / end_access %#{id} : \$\*#{type} /.match? (line[:value])
           i += 1
         end
+        return [i, last_store_id, end_id]
       end
-      private def find_end_ids(lines_provider, i)
-        line = lines_provider.peek_custom(i)
-        return line[:value].match(/\/\/\sid:\s%(\d+)/ ).captures[0].to_i
-     end
+    end
+
+    class SILFreeFallAccess < SILAccess
+      def initialize(lines_provider)
+        @line_number = lines_provider.index
+        line = lines_provider.read()
+        last_stored_id, @access_id, @type, @id = line[:value].match(/ store %(\d+) to %(\d+) : \$\*(\S*)\s* \/\/ id: %(\d+)/).captures
+        @last_used_ids = @id.to_i
+        @last_stored_id = last_stored_id.to_i
+        @modifiers = []
+        @offset_end = 1
+      end
+      def is_writeable
+        true
+      end
     end
   end
 end

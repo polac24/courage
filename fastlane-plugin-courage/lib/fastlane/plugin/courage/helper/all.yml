@@ -127,11 +127,13 @@
     required:
       type: "Int"
     actions:
-      mutate: "\ \ %1 = integer_literal $Builtin.Int64, -1        // user: %2\n
+      mutate: 
+        return: "\ \ %1 = integer_literal $Builtin.Int64, -1        // user: %2\n
 \ %2 = struct $Int (%1 : $Builtin.Int64)        // user: %4\n
 \ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
 \ store %2 to %3 : $*Int                        // id: %4\n
 \ end_access %3 : $*Int                          // id: %5\n"
+      stored_value: 2
       offset: 6
 
 - access_mutation: 
@@ -139,11 +141,13 @@
     required:
       type: "Int"
     actions:
-      mutate: "\ \ %1 = integer_literal $Builtin.Int64, 0        // user: %2\n
+      mutate: 
+        return: "\ \ %1 = integer_literal $Builtin.Int64, 0        // user: %2\n
 \ %2 = struct $Int (%1 : $Builtin.Int64)        // user: %4\n
 \ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
 \ store %2 to %3 : $*Int                        // id: %4\n
 \ end_access %3 : $*Int                          // id: %5\n"
+      stored_value: 2
       offset: 6
 
 - access_mutation: 
@@ -151,7 +155,8 @@
     required:
       type: "String"
     actions:
-      mutate: "\ \ %1 = string_literal utf8 \"\"                    // user: %6\n
+      mutate: 
+        return: "\ \ %1 = string_literal utf8 \"\"                    // user: %6\n
 \ %2 = integer_literal $Builtin.Word, 0          // user: %6\n
 \ %3 = integer_literal $Builtin.Int1, -1         // user: %6\n
 \ %4 = metatype $@thin String.Type               // user: %6\n
@@ -161,6 +166,7 @@
 \ %7 = begin_access [modify] [static] #0 : $*String // users: %11, %12\n
 \ store %6 to %7 : $*String                        // id: %11\n
 \ end_access %7 : $*String                          // id: %13\n"
+      stored_value: 6
       offset: 14
     dependencies:
         - file: 

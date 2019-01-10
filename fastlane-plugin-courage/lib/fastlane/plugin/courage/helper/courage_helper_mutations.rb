@@ -152,7 +152,7 @@ module Fastlane
         return [] unless !object.nil?
         replaces = []
         if !object["variable"].nil?
-          replaces.push({key:object["variable"], value: type.to_s})
+          replaces.push({key:"@#{object["variable"]}", value: type.to_s})
         end
         replaces.concat(replaces_for_type(object["generic"], type.generics.join(","))) unless !type.is_a?(Helper::Type) || !type.isGeneric || object["generic"].nil?
         replaces
@@ -206,7 +206,7 @@ module Fastlane
         }
         line = line.gsub(/#0/, "%#{return_index}")
         line = variables.reduce(line){|prev_line, replace|
-          prev_line.gsub(/@#{replace[:key]}/, "#{replace[:value]}")
+          prev_line.gsub(/#{replace[:key]}/, replace[:value])
         }
         line
       end
@@ -301,9 +301,11 @@ module Fastlane
           # +2 means that we should include "dealloc_stack"
           access_ending_index = access.line_number + access.offset_end + 2
           block.body[0...access_ending_index].each{|x| output.puts(x[:value])}
-          @actions.print(output, access.last_used_ids+1, access.access_id)
+          available_id = access.last_used_ids+1
+          @actions.print(output, available_id, access.access_id)
+          new_value_id = available_id+@actions.stored_value
           block.body[(access_ending_index)..-1].map{|x| 
-            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.id, "", [])
+            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.id, "", [{key:"%#{access.last_stored_id}\\s", value:"%#{new_value_id} "}])
           }.each{|x| output.puts(x)}
 
           [@actions.offset, access.id]
@@ -340,10 +342,14 @@ module Fastlane
         @action = SILGenericMutationAction.new(object["mutate"])
         @offset = 0
         @offset = object["offset"] if !object["offset"].nil?
+        @stored_value = object["stored_value"]
         @dependencies = SILDependencies.new(object["dependencies"])
       end
       def offset
         @offset
+      end
+      def stored_value
+        @stored_value
       end
       def action
         @action

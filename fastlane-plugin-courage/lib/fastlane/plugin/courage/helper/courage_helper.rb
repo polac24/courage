@@ -77,6 +77,8 @@ module Fastlane
             new_token[:type]="coverage_map"
           elsif line.include?(" = begin_access ")
             new_token[:type]="begin_access"
+          elsif line.include?(" store ")
+            new_token[:type]="store"
           elsif line.start_with?("  return ")
             new_token[:type]="return"
           elsif line.start_with?("  ")
