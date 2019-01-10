@@ -79,6 +79,8 @@ module Fastlane
             new_token[:type]="begin_access"
           elsif line.include?(" store ")
             new_token[:type]="store"
+          elsif line.include?("_literal ")
+            new_token[:type]="literal"
           elsif line.start_with?("  return ")
             new_token[:type]="return"
           elsif line.start_with?("  ")

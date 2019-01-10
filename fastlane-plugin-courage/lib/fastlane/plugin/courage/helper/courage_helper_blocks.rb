@@ -269,6 +269,7 @@ module Fastlane
         @arguments_count = parse_block_arguments(lines[definition_index][:value]).count
         @body = lines.drop(definition_index+1)
         @accesses = SILAccess.readAll(ContentProvider.new(@body))
+        @literals = SILLiteral.readAll(ContentProvider.new(@body))
       end
       def arguments_count
         @arguments_count
@@ -278,6 +279,9 @@ module Fastlane
       end
       def accesses
         @accesses
+      end
+      def literals
+        @literals
       end
       def print(output)
         print_head(output)
@@ -408,6 +412,47 @@ module Fastlane
       end
       def is_writeable
         true
+      end
+    end
+
+    class SILLiteral
+      def self.readAll(lines_provider)
+        literals = []
+        loop do
+          line = lines_provider.peek()
+          break if line.nil?
+          if line[:type] == "literal"
+              literals.push(SILLiteral.new(lines_provider))
+          else
+              lines_provider.read()
+          end
+        end
+        literals
+      end
+      def initialize(lines_provider)
+        @line_number = lines_provider.index
+        line = lines_provider.read()
+        ##   %0 = integer_literal $Builtin.Int64, 0          // user: %1
+        id, @literal_name, @type, @value, @user_section = line[:value].match(/%(\d+) = (\S*_literal) (\S*) (.*)\s*\/\/ user(.*)/).captures
+        @id = id.to_i
+      end
+      def id
+        @id
+      end
+      def line_number
+        @line_number
+      end
+      def literal_name
+        @literal_name
+      end
+      def type
+        @type
+      end
+      def value
+        @value
+      end
+      def print(output, value)
+        output.puts(" %#{@id} = #{@literal_name} #{type} #{value}          // user#{@user_section}\n")
       end
     end
   end
