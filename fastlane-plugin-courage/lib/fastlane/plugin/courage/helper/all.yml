@@ -173,3 +173,11 @@
     dependencies:
         - file: 
           file: "sil/empty_string.sil"
+
+- literal_mutation: 
+    name: "Set Int to 0"
+    required:
+      type: "integer_literal"
+    actions:
+      mutate: 
+        literal: "0"
