@@ -300,13 +300,17 @@ module Fastlane
       private def print_block_with_mutation(block, access, output)
           block.print_head(output)
           # +2 means that we should include "dealloc_stack"
-          access_ending_index = access.line_number + access.offset_end + 2
+          access_ending_index = access.line_number + access.offset_end
           block.body[0...access_ending_index].each{|x| output.puts(x[:value])}
-          available_id = access.last_used_ids+1
+          available_id = access.last_used_ids
           @actions.print(output, available_id, access.access_id)
           new_value_id = available_id+@actions.stored_value
+          new_builtin_value_id = available_id+@actions.builtin_value
           block.body[(access_ending_index)..-1].map{|x| 
-            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.id, "", [{key:"%#{access.last_stored_id}\\s", value:"%#{new_value_id} "}])
+            replace_lookup = [{key:"%#{access.last_stored_id}\\s", value:"%#{new_value_id} "}]
+            # builtin literal id to also replace
+            replace_lookup.push({key:"%#{block.structs[access.last_stored_id].source_id}\\s", value:"%#{new_builtin_value_id} "}) if block.structs.key?(access.last_stored_id)
+            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.id, "", replace_lookup)
           }.each{|x| output.puts(x)}
 
           [@actions.offset, access.id]
@@ -344,6 +348,7 @@ module Fastlane
         @offset = 0
         @offset = object["offset"] if !object["offset"].nil?
         @stored_value = object["stored_value"]
+        @builtin_value = object["builtin_value"]
         @dependencies = SILDependencies.new(object["dependencies"])
       end
       def offset
@@ -351,6 +356,9 @@ module Fastlane
       end
       def stored_value
         @stored_value
+      end
+      def builtin_value
+        @builtin_value
       end
       def action
         @action

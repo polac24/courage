@@ -133,6 +133,7 @@
 \ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
 \ store %2 to %3 : $*Int                        // id: %4\n
 \ end_access %3 : $*Int                          // id: %5\n"
+      builtin_value: 1
       stored_value: 2
       offset: 6
 
@@ -147,6 +148,7 @@
 \ %3 = begin_access [modify] [static] #0 : $*Int // users: %4, %5\n
 \ store %2 to %3 : $*Int                        // id: %4\n
 \ end_access %3 : $*Int                          // id: %5\n"
+      builtin_value: 1
       stored_value: 2
       offset: 6
 

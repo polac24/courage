@@ -270,6 +270,7 @@ module Fastlane
         @body = lines.drop(definition_index+1)
         @accesses = SILAccess.readAll(ContentProvider.new(@body))
         @literals = SILLiteral.readAll(ContentProvider.new(@body))
+        @structs = SILStruct.mapAll(ContentProvider.new(@body))
       end
       def arguments_count
         @arguments_count
@@ -282,6 +283,9 @@ module Fastlane
       end
       def literals
         @literals
+      end
+      def structs
+        @structs
       end
       def print(output)
         print_head(output)
@@ -453,6 +457,48 @@ module Fastlane
       end
       def print(output, value)
         output.puts(" %#{@id} = #{@literal_name} #{type} #{value}          // user#{@user_section}\n")
+      end
+    end
+
+    class SILStruct
+      def self.mapAll(lines_provider)
+        structs = []
+        loop do
+          line = lines_provider.peek()
+          break if line.nil?
+          if line[:type] == "struct"
+              structs.push(SILStruct.new(lines_provider))
+          else
+              lines_provider.read()
+          end
+        end
+        structs.map{ |x| [x.id, x] }.to_h
+      end
+      def initialize(lines_provider)
+        @line_number = lines_provider.index
+        line = lines_provider.read()
+        ##   %6 = struct $Double (%5 : $Builtin.FPIEEE64)    // user: %7
+        id, @type, source_id, @source_type, @user_section = line[:value].match(/%(\d+) = struct (\S*) \(%(\d+) \: (.*)\)\s*\/\/ user(.*)/).captures
+        @id = id.to_i
+        @source_id = source_id.to_i
+      end
+      def id
+        @id
+      end
+      def line_number
+        @line_number
+      end
+      def source_id
+        @source_id
+      end
+      def type
+        @type
+      end
+      def value
+        @value
+      end
+      def print(output)
+        output.puts(" %#{@id} = struct #{@source_type} (%#{source_id} : #{source_type})          // user#{@user_section}\n")
       end
     end
   end

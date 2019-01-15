@@ -81,6 +81,12 @@ module Fastlane
             new_token[:type]="store"
           elsif line.include?("_literal ")
             new_token[:type]="literal"
+          elsif line.include?("= struct ")
+            # packs biltin type to struct
+            new_token[:type]="struct"
+          elsif line.include?("= struct_extract ")
+            # opposite to "struct": builds builtin type from struct
+            new_token[:type]="structExtract"
           elsif line.start_with?("  return ")
             new_token[:type]="return"
           elsif line.start_with?("  ")
