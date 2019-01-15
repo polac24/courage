@@ -271,6 +271,7 @@ module Fastlane
         @accesses = SILAccess.readAll(ContentProvider.new(@body))
         @literals = SILLiteral.readAll(ContentProvider.new(@body))
         @structs = SILStruct.mapAll(ContentProvider.new(@body))
+        @calls = SILCall.mapAll(ContentProvider.new(@body))
       end
       def arguments_count
         @arguments_count
@@ -286,6 +287,9 @@ module Fastlane
       end
       def structs
         @structs
+      end
+      def calls
+        @calls
       end
       def print(output)
         print_head(output)
@@ -499,6 +503,42 @@ module Fastlane
       end
       def print(output)
         output.puts(" %#{@id} = struct #{@source_type} (%#{source_id} : #{source_type})          // user#{@user_section}\n")
+      end
+    end
+
+    class SILCall
+      def self.mapAll(lines_provider)
+        calls = []
+        loop do
+          line = lines_provider.peek()
+          break if line.nil?
+          if line[:type] == "builtin_call"
+              calls.push(SILCall.new(lines_provider))
+          else
+              lines_provider.read()
+          end
+        end
+        calls
+      end
+      def initialize(lines_provider)
+        @line_number = lines_provider.index
+        line = lines_provider.read()
+        ##    %15 = builtin "sadd_with_overflow_Int64"(%12 : $Builtin.Int64, %13 : $Builtin.Int64, %14 : $Builtin.Int1) : $(Builtin.Int64, Builtin.Int1) // users: %17, %16
+        id, @name, @input, @output = line[:value].match(/%(\d+) = builtin "(\S+)"\((.*)\) : \$\((.*)\)/).captures
+        @id = id.to_i
+      end
+      def id
+        @id
+      end
+      def line_number
+        @line_number
+      end
+      def name
+        @name
+      end
+      def print(output, old_pattern, new_pattern)
+        new_name = @name.gsub(old_pattern, new_pattern)
+        output.puts("  %#{@id} = builtin \"#{new_name}\"(#{@input}) : $(#{@output})         //\n")
       end
     end
   end

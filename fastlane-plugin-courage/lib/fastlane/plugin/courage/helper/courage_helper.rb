@@ -87,6 +87,9 @@ module Fastlane
           elsif line.include?("= struct_extract ")
             # opposite to "struct": builds builtin type from struct
             new_token[:type]="structExtract"
+          elsif line.include?(" = builtin ")
+            # calls biltin function
+            new_token[:type]="builtin_call"
           elsif line.start_with?("  return ")
             new_token[:type]="return"
           elsif line.start_with?("  ")

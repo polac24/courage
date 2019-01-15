@@ -181,3 +181,19 @@
     actions:
       mutate: 
         literal: "0"
+
+- call_mutation: 
+    name: "Replace + with -"
+    required:
+      call_pattern: "sadd_with"
+    actions:
+      mutate: 
+        replace: "ssub_with"
+
+- call_mutation: 
+    name: "Replace - with +"
+    required:
+      call_pattern: "ssub_with"
+    actions:
+      mutate: 
+        replace: "sadd_with"
