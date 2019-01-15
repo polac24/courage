@@ -114,6 +114,30 @@
         offset: 4
 
 - mutation: 
+    name: "Return -1"
+    required:
+      return:
+        type: "Int"
+    actions:
+      before_function_return: 
+        return: "\ \ %1 = integer_literal $Builtin.Int64, -1           // user: %2\n
+\ \ %2 = struct $Int (%1 : $Builtin.Int64)          // user: %3\n
+\ \ return %2 : $Int                               // id: %3\n"
+        offset: 4
+
+- mutation: 
+    name: "Return 0"
+    required:
+      return:
+        type: "Int"
+    actions:
+      before_function_return: 
+        return: "\ \ %1 = integer_literal $Builtin.Int64, 0           // user: %2\n
+\ \ %2 = struct $Int (%1 : $Builtin.Int64)          // user: %3\n
+\ \ return %2 : $Int                               // id: %3\n"
+        offset: 4
+
+- mutation: 
     name: "No operation"
     required:
       return: "()"
