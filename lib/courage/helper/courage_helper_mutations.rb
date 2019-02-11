@@ -1,0 +1,542 @@
+require 'yaml'
+
+module Courage
+
+  module Helper
+    class SILMutations
+      def initialize(blocks, allowed_symbols)
+        @blocks = blocks
+        @all_symbols = blocks.select{|x| ["function", "function_definition", "global_variable"].include?(x.type)}.map{|function|
+          function.definition.name
+        }
+
+        thing = YAML::load_file(File.join(__dir__, 'all.yml'))
+        mutation_defs = thing.map{ |mutation_representation| 
+          if !mutation_representation["mutation"].nil?
+            SILGenericMutation.new(mutation_representation["mutation"])
+          elsif !mutation_representation["access_mutation"].nil?
+            SILAccessMutation.new(mutation_representation["access_mutation"])
+          elsif !mutation_representation["literal_mutation"].nil?
+            SILLiteralMutation.new(mutation_representation["literal_mutation"])
+          elsif !mutation_representation["call_mutation"].nil?
+            SILCallMutation.new(mutation_representation["call_mutation"])
+          end
+        }
+        all_mutations = []
+        blocks.each { |block|
+          mutation_defs.each{|mutation|
+            if mutation.isSupported(block, allowed_symbols)
+              new_mutations = (0...mutation.count(block)).map{|x|
+                {block: block, mutation: mutation, index:x}
+              }
+              all_mutations.concat(new_mutations)
+            end
+          }
+        }
+        @all_mutations = all_mutations
+      end
+
+      def print_mutation(i, output)
+        mutation = @all_mutations[i]
+        block = mutation[:block]
+        mutation_representation = mutation[:mutation]
+        mutation_index = mutation[:index]
+
+        @blocks.each do  |parse|
+          if parse.type == "function" && parse.definition == block.definition
+            # mutate
+            mutation_representation.print_mutation(block, mutation_index, @all_symbols, output)
+          else
+            parse.print(output)
+          end
+        end
+
+        mutation_name(i)
+      end
+      def print_mutation_to_file(index, fileName)
+        output = File.open(fileName,"w" )
+        mutation_summary = print_mutation(index, output)
+        output.close
+        mutation_summary
+      end
+      def mutation_name(i)
+        "#{@all_mutations[i][:mutation].name} for #{@all_mutations[i][:block].human_name}"
+      end
+      def mutationsCount
+        @all_mutations.count
+      end
+    end
+
+    class SILGenericMutation
+      def initialize(object)
+        @required = SILGenericMutationRequired.new(object["required"])
+        @actions = SILGenericMutationActions.new(object["actions"])
+        @replaces = SILGenericMutationVariables.new(object)
+        @name = object["name"]
+      end
+      def name
+        @name
+      end
+      def count(function)
+        1
+      end
+      def isSupported(function, allowed_symbols)
+        return false unless FunctionMutation.isSupported(function, allowed_symbols) 
+        return false unless @required.isSupported(function)
+        return true
+      end
+      def print_mutation(function, index, all_symbols, output)
+        if @actions.replace_all.nil?
+          print_mutation_append(function, index, all_symbols, output)
+        else
+          print_mutation_replace(function, index, all_symbols, output)
+        end 
+      end
+      private def print_mutation_append(function, index, all_symbols, output)
+        variables = @replaces.replaces(function)
+        function.human_name.print(output)
+        function.definition.print(output)
+        # until return bb
+        return_bb_index = function.building_blocks.index {|x| x.has_return}
+        function.building_blocks[0...return_bb_index].each {|x| x.print(output)}
+        # until return line
+        return_bb = function.building_blocks[return_bb_index]
+        return_position_index = return_bb.return_position_index
+        return_bb.print_head(output)
+        return_bb.body[0...return_position_index].each {|x| output.puts x[:value]}
+        return_index, available = return_bb.body[return_position_index][:value].match(/return %(\d+).*\/\/.*id:.*%(\d+)/).captures
+
+        @actions.before_return.print(output, available.to_i, return_index.to_i, variables)
+        return_bb.body[return_position_index+1..-1].each {|x| output.puts x[:value]}
+
+        #other bb 
+        function.building_blocks[(return_bb_index+1)..-1].each {|x| x.print_with_offset(output, @actions.before_return.offset, return_index.to_i)}
+        output.puts (function.end[:value])
+        output.puts ""
+
+        @actions.dependencies.print_after_function(output, all_symbols)
+      end
+
+      private def print_mutation_replace(function, index, all_symbols, output)
+        function.human_name.print(output)
+        function.definition.print(output)
+
+        function.building_blocks[0].print_head(output)
+        @actions.replace_all.print(output, (function.building_blocks[0].arguments_count - 1), 0, [])
+        output.puts (function.end[:value])
+        output.puts ""
+      end
+    end
+
+    class SILGenericMutationRequired
+      def initialize(object)
+        @expected_return = object["return"]
+      end
+      def isSupported(function)
+        case @expected_return
+        when String
+          return function.definition.return_type.to_s == @expected_return
+        when Hash
+          return false unless function.definition.return_type.type.to_s == @expected_return["type"]
+          return false unless function.definition.return_type.isGeneric == !@expected_return["generic"].nil?
+          return true
+        end
+        return false
+      end
+    end
+    class SILGenericMutationVariables
+      def initialize(object)
+        @expected_return = object["required"]["return"]
+      end
+      def replaces(function)
+        replaces_for_type(@expected_return, function.definition.return_type)
+      end
+      def replaces_for_type(object, type)
+        return [] unless !object.nil?
+        replaces = []
+        if !object["variable"].nil?
+          replaces.push({key:"@#{object["variable"]}", value: type.to_s})
+        end
+        replaces.concat(replaces_for_type(object["generic"], type.generics.join(","))) unless !type.is_a?(Helper::Type) || !type.isGeneric || object["generic"].nil?
+        replaces
+      end
+    end
+    class SILGenericMutationActions
+      def initialize(object)
+        @before_return = nil
+        @replace_all = nil
+        @before_return = SILGenericMutationAction.new(object["before_function_return"]) if !object["before_function_return"].nil?
+        @replace_all = SILGenericMutationAction.new(object["replace"]) if !object["replace"].nil?
+        @dependencies = SILDependencies.new(object["dependencies"])
+      end
+      def before_return
+        @before_return
+      end
+      def dependencies
+        @dependencies
+      end
+      def replace_all
+        @replace_all
+      end
+    end
+
+    class SILGenericMutationAction
+      def initialize(object)
+        return nil if object.nil?
+        @string = object["return"]
+        @offset = 0
+        @offset = object["offset"] if !object["offset"].nil?
+      end
+      def print(output, offset_index, return_index, variables)
+        unless @string.nil?
+          line = SILGenericMutationAction.modifyLine(@string, offset_index, 0, return_index, variables)
+          output.puts(line)
+          return 
+        end
+        unless @fileName.nil?
+          File.open(File.join(__dir__, @fileName), 'r') do |f1|  
+            while line = f1.gets  
+              output.puts line
+            end  
+          end 
+        end
+      end
+      def self.modifyLine(line_input, offset_index, rewrite_index_start, return_index, variables)
+        line = line_input.gsub(/%(\d+)/) {|num| 
+          matched_var_index = num[1..-1].to_i
+          matched_var_index += offset_index if matched_var_index > rewrite_index_start
+          "%#{matched_var_index}"
+        }
+        line = line.gsub(/#0/, "%#{return_index}")
+        line = variables.reduce(line){|prev_line, replace|
+          prev_line.gsub(/#{replace[:key]}/, replace[:value])
+        }
+        line
+      end
+      def offset
+        @offset
+      end
+    end
+
+    class SILDependencies
+      def initialize(object)
+        if object.nil?
+          @functions = []
+        else
+          @functions = object.map{|x|
+            SILDependency.new(x)
+          }
+        end
+      end
+      def print_after_function(output, already_defined_symbols)
+        @functions.each {|x|
+          x.print_after_function(output, already_defined_symbols)
+        }
+      end
+    end
+    class SILDependency
+      def initialize(object)
+        file = object["file"]
+        @symbols = Helper::SILParser.new(File.join(__dir__, file)).symbols
+      end
+      def print_after_function(output, already_defined_symbols)
+        @symbols.each{|symbol|
+          symbol.print(output) unless already_defined_symbols.include? symbol.definition.name
+        }
+      end
+    end
+
+    class FunctionMutation
+      def self.isSupported(function, allowed_symbols)
+        return false unless function.type == "function"
+        return false if !allowed_symbols.include?(function.definition.name)
+        return true
+      end
+    end
+
+    class SILAccessMutation
+      def initialize(object)
+        @required = SILAccessMutationRequired.new(object["required"])
+        @actions = SILAccessMutationActions.new(object["actions"])
+        @name = object["name"]
+      end
+      def name
+        @name
+      end
+      def count(function)
+        @required.accesses(function).count
+      end
+      def to_s
+        @name
+      end
+      def isSupported(function, allowed_symbols)
+        return false unless FunctionMutation.isSupported(function, allowed_symbols) 
+        return false unless @required.isSupported(function)
+        return true
+      end
+      def print_mutation(function, i, all_symbols, output)
+        function.print_header(output)
+        left_index = i
+        offset = 0
+        offset_start = 0
+        building_blocks = function.building_blocks
+        for block in building_blocks
+          if left_index.nil?
+            block.print_with_offset(output, offset, offset_start)
+          else
+            potential_mutations = @required.accesses_block(block, 0)
+            if potential_mutations.count <= left_index
+              block.print(output)
+              left_index -= potential_mutations.count
+            else
+              access_index = potential_mutations[left_index]
+              offset, offset_start = print_block_with_mutation(block, block.accesses[access_index], output)
+              left_index = nil
+            end
+          end
+        end
+        function.print_end(output)
+
+        @actions.dependencies.print_after_function(output, all_symbols)
+      end
+      private def print_block_with_mutation(block, access, output)
+          block.print_head(output)
+          access_ending_index = access.line_number + access.offset_end
+          block.body[0...access_ending_index].each{|x| output.puts(x[:value])}
+          available_id = access.last_used_ids
+          @actions.print(output, available_id, access.access_id)
+          new_value_id = available_id+@actions.stored_value
+          new_builtin_value_id = available_id+@actions.builtin_value
+          block.body[(access_ending_index)..-1].map{|x| 
+            replace_lookup = [{key:"%#{access.last_stored_id}\\s", value:"%#{new_value_id} "}]
+            # builtin literal id to also replace
+            replace_lookup.push({key:"%#{block.structs[access.last_stored_id].source_id}\\s", value:"%#{new_builtin_value_id} "}) if block.structs.key?(access.last_stored_id)
+            SILGenericMutationAction.modifyLine(x[:value], @actions.offset, access.id, "", replace_lookup)
+          }.each{|x| output.puts(x)}
+
+          [@actions.offset, access.id]
+      end
+    end
+    class SILAccessMutationRequired
+      def initialize(object)
+        @type = object["type"]
+      end
+      def accesses(function)
+        building_blocks = function.building_blocks
+        indexes = []
+        access_offset = 0
+        for i in 0...building_blocks.count
+          indexes.concat(accesses_block(building_blocks[i], access_offset))
+          access_offset += building_blocks[i].accesses.count
+        end
+        indexes
+      end
+      def accesses_block(building_block, offset)
+        indexes = []
+        all_accesses = building_block.accesses
+        for i in 0...all_accesses.count
+          indexes.push(i+offset) if all_accesses[i].access_type == @type && all_accesses[i].is_writeable
+        end
+        indexes
+      end
+      def isSupported(function)
+        accesses(function).count > 0
+      end
+    end
+    class SILAccessMutationActions
+      def initialize(object)
+        @action = SILGenericMutationAction.new(object["mutate"])
+        @offset = 0
+        @offset = object["offset"] if !object["offset"].nil?
+        @stored_value = object["stored_value"]
+        @builtin_value = object["builtin_value"]
+        @dependencies = SILDependencies.new(object["dependencies"])
+      end
+      def offset
+        @offset
+      end
+      def stored_value
+        @stored_value
+      end
+      def builtin_value
+        @builtin_value
+      end
+      def action
+        @action
+      end
+      def dependencies
+        @dependencies
+      end
+      def print(output, available_index, return_index)
+        @action.print(output, available_index, return_index, [])
+      end
+    end
+
+    class SILLiteralMutation
+      def initialize(object)
+        @required = SILLiteralMutationRequired.new(object["required"])
+        @actions = SILLiteralMutationActions.new(object["actions"])
+        @name = object["name"]
+      end
+      def name
+        @name
+      end
+      def count(function)
+        @required.literals(function).count
+      end
+      def to_s
+        @name
+      end
+      def isSupported(function, allowed_symbols)
+        return false unless FunctionMutation.isSupported(function, allowed_symbols) 
+        return count(function) > 0
+      end
+      def print_mutation(function, i, all_symbols, output)
+        function.print_header(output)
+        left_index = i
+        building_blocks = function.building_blocks
+        for block in building_blocks
+          if left_index.nil?
+            block.print_with_offset(output, 0, 0)
+          else
+            potential_literals = @required.literal_blocks(block, 0)
+            if potential_literals.count <= left_index
+              block.print(output)
+              left_index -= potential_literals.count
+            else
+              literal_index = potential_literals[left_index]
+              print_block_with_mutation(block, block.literals[literal_index], output)
+              left_index = nil
+            end
+          end
+        end
+        function.print_end(output)
+      end
+      private def print_block_with_mutation(block, literal, output)
+          block.print_head(output)
+          literal_index = literal.line_number
+          block.body[0...literal_index].each{|x| output.puts(x[:value])}
+          @actions.print(output, literal)
+          block.body[(literal_index)..-1].each{|x| output.puts(x[:value])}
+      end
+    end
+
+    class SILLiteralMutationRequired
+      def initialize(object)
+        @type = object["type"]
+      end
+      def literal_blocks(building_block, offset)
+        indexes = []
+        all_literals = building_block.literals
+        for i in 0...all_literals.count
+          indexes.push(i+offset) if all_literals[i].type == @type
+        end
+        indexes
+      end
+      def literals(function)
+        building_blocks = function.building_blocks
+        indexes = []
+        literals_offset = 0
+        for i in 0...building_blocks.count
+          indexes.concat(literal_blocks(building_blocks[i], literals_offset))
+          literals_offset += building_blocks[i].literals.count
+        end
+        indexes
+      end
+    end
+    class SILLiteralMutationActions
+      def initialize(object)
+        @value = object["mutate"]["literal"]
+      end
+      def print(output, literal)
+        # %0 = integer_literal $Builtin.Int64, 0          // user: %1
+        literal.print(output, @value)
+      end
+    end
+
+    class SILCallMutation
+      def initialize(object)
+        @required = SILCallMutationRequired.new(object["required"])
+        @actions = SILCallMutationActions.new(object["actions"])
+        @name = object["name"]
+      end
+      def name
+        @name
+      end
+      def count(function)
+        @required.calls(function).count
+      end
+      def to_s
+        @name
+      end
+      def isSupported(function, allowed_symbols)
+        return false unless FunctionMutation.isSupported(function, allowed_symbols) 
+        return count(function) > 0
+      end
+      def print_mutation(function, i, all_symbols, output)
+        function.print_header(output)
+        left_index = i
+        building_blocks = function.building_blocks
+        for block in building_blocks
+          if left_index.nil?
+            block.print_with_offset(output, 0, 0)
+          else
+            potential_calls = @required.call_blocks(block, 0)
+            if potential_calls.count <= left_index
+              block.print(output)
+              left_index -= potential_calls.count
+            else
+              call_index = potential_calls[left_index]
+              print_block_with_mutation(block, block.calls[call_index], output)
+              left_index = nil
+            end
+          end
+        end
+        function.print_end(output)
+      end
+      private def print_block_with_mutation(block, call, output)
+          block.print_head(output)
+          call_index = call.line_number
+          block.body[0...call_index].each{|x| output.puts(x[:value])}
+          @actions.print(output, call, @required.call_pattern)
+          block.body[(call_index+1)..-1].each{|x| output.puts(x[:value])}
+      end
+    end
+
+    class SILCallMutationRequired
+      def initialize(object)
+        @call_pattern = object["call_pattern"]
+        @call_pattern_regex = /#{Regexp.quote(object["call_pattern"])}/
+      end
+      def call_pattern
+        @call_pattern
+      end
+      def call_blocks(building_block, offset)
+        indexes = []
+        all_calls = building_block.calls
+        for i in 0...all_calls.count
+          indexes.push(i+offset) if all_calls[i].name =~ @call_pattern_regex
+        end
+        indexes
+      end
+      def calls(function)
+        building_blocks = function.building_blocks
+        indexes = []
+        calls_offset = 0
+        for i in 0...building_blocks.count
+          indexes.concat(call_blocks(building_blocks[i], calls_offset))
+          calls_offset += building_blocks[i].calls.count
+        end
+        indexes
+      end
+    end
+    class SILCallMutationActions
+      def initialize(object)
+        @replace = object["mutate"]["replace"]
+      end
+      def print(output, call, what)
+        call.print(output, what, @replace)
+      end
+    end
+  end
+end

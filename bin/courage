@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+
+# Copyright (c) 2019 Bartosz Polaczyk
+# Distributed under the MIT License
+
+require 'optparse'
+require 'courage'
+
+
+options = {:level => 100, :verbose => false, :files => [], :excludes => []}
+OptionParser.new do |opts|
+  opts.banner = "Usage: courage [OPTIONS] [PROJECT].xcodeproj"
+
+  opts.on("-p", "--xcodeproj PROJ", "Location of an .xcodeproj project") do |p|
+    options[:project] = p
+  end
+
+  opts.on("-w", "--workspace WORKSPACE", "Location of an .xcworkspace project") do |w|
+    options[:workspace] = w
+  end
+
+  opts.on("-l", "--level RATIO", "Set mutation ration (default to 100%)") do |l|
+    options[:level] = l.to_i
+  end
+
+  opts.on("-f", "--files file1,file2,...", Array, "Exclusive mutation for specified file(s)") do |file|
+    options[:files] += file
+  end
+
+  opts.on("-x", "--exclude file1,file2,...", Array, "Exclude specific file(s) in mutation") do |excludeFiles|
+    options[:excludes] += excludeFiles
+  end
+
+  opts.on("-s", "--scheme SCEME", "Project scheme to use") do |scheme|
+    options[:scheme] = scheme
+  end
+
+  opts.on("-t", "--target TARGET", "TARGET to mutate") do |target|
+    options[:target] = target
+  end
+
+  opts.on("-i", "--sil-file file1", "Simple sil file mutation") do |sil|
+    options[:sil_file] = sil
+  end
+
+  opts.on("-d", "--device device_name", "Simulator device name to run tests") do |device|
+    options[:device] = device
+  end
+
+  opts.on("-v", "--verbose", "Enabled verbose") do |v|
+    options[:verbose] = true
+  end
+end.parse!
+
+result = nil
+raise OptionParser::MissingArgument if options[:project].nil? && options[:workspace].nil?
+raise OptionParser::MissingArgument if options[:scheme].nil?
+raise OptionParser::MissingArgument if options[:device].nil?
+raise OptionParser::MissingArgument if options[:target].nil?
+
+
+Courage::courage(options)
+print "end..."

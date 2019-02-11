@@ -1,0 +1,3 @@
+
+// Sequence.reversed()
+sil [serialized] @$SSTsE8reversedSay7ElementQzGyF : $@convention(method) <τ_0_0 where τ_0_0 : Sequence> (@in_guaranteed τ_0_0) -> @owned Array<τ_0_0.Element>

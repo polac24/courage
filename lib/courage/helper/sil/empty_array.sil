@@ -1,0 +1,8 @@
+
+
+// _allocateUninitializedArray<A>(_:)
+sil [serialized] [always_inline] @$Ss27_allocateUninitializedArrayySayxG_BptBwlF : $@convention(thin) <τ_0_0> (Builtin.Word) -> (@owned Array<τ_0_0>, Builtin.RawPointer)
+
+// Array.init(arrayLiteral:)
+sil [serialized] @$SSa12arrayLiteralSayxGxd_tcfC : $@convention(method) <τ_0_0> (@owned Array<τ_0_0>, @thin Array<τ_0_0>.Type) -> @owned Array<τ_0_0>
+
