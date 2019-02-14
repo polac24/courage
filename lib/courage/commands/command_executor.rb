@@ -3,10 +3,8 @@ require_relative '../ui/ui'
 module Courage
 	module Core
 		class CommandExecutor
-			def self.execute(command: nil, print_all: false, print_command: true, error: nil, prefix: nil, loading: nil, suppress_output: false)
+			def self.execute(command: nil, print_all: true, print_command: true, error: nil, prefix: nil, loading: nil, suppress_output: false)
 		        prefix ||= {}
-		        print_all = true
-		        print_command = true
 
 		        output = []
 		        command = command.join(" ") if command.kind_of?(Array)
@@ -52,7 +50,6 @@ module Courage
 		        if status != 0
 		          o = output.join("\n")
 		          puts(o) unless suppress_output # the user has the right to see the raw output
-		          Courage::Actions::UI.error("Exit status: #{status}")
 		          if error
 		            error.call(o, status)
 		          else

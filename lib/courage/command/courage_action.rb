@@ -21,12 +21,6 @@ module Courage
           return 
         end
 
-        puts ("The courage is working!")
-        start_device(params[:device])
-        project = "-project #{params[:project]}"
-        project = "-workspace #{params[:workspace]}" if params[:workspace]
-        command = "xcodebuild clean build-for-testing #{project} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
-
         all_builds = []
         buildCommands = []
         linkCommand = nil
@@ -36,6 +30,13 @@ module Courage
         enabledTarget = true
         targetName = ""
         verbose = params[:verbose] 
+
+
+        start_device(params[:device], verbose)
+        project = "-project #{params[:project]}"
+        project = "-workspace #{params[:workspace]}" if params[:workspace]
+        command = "xcodebuild clean build-for-testing #{project} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
+
 
         prefix_hash = [
         {
@@ -69,7 +70,7 @@ module Courage
             elsif value.include?("CompileSwift")
               compileGroup = true
             elsif compileGroup && value.include?("/swift ") && enabledTarget
-              puts value
+              UI.message(value) if verbose
               # copy fileList into a local file
               if fileList = value[/\s\-filelist\s(\S+)/,1] 
                 if fileLists["#{fileList}"].nil?
@@ -113,6 +114,7 @@ module Courage
         buildCommands = []
       end
 
+      UI.message("Project scanning...")
       all_builds.each {|buildCommands|
         files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
 
@@ -125,7 +127,7 @@ module Courage
         end
       end
 
-      def self.make_sibs(commands: commands, linkCommand: linkCommand, verbose: verbose)
+      def self.make_sibs(commands: nil, linkCommand: nil, verbose: false)
         files = []
         all_swifts = commands.reduce([]) {|prev,file| prev.push(file[/\s-primary-file\s(.*?\.swift|\".*\.swift\")\s/,1])}
         commands.each do |element|
@@ -156,7 +158,7 @@ module Courage
         prepare_sils(files:files)
       end
 
-      def self.make_sils(files: files, verbose: verbose)
+      def self.make_sils(files: nil, verbose: false)
         files.each_with_index do |element, index|
           command = element[:command].gsub('.o', '.sil') + " -emit-sil "
           Core::CommandExecutor.execute(command: command,
@@ -171,7 +173,7 @@ module Courage
         end
       end
 
-      def self.prepare_sils(files: files, verbose: verbose)
+      def self.prepare_sils(files: nil, verbose: false)
         totalFiles = []
         files.each_with_index do |element, index|
           other_files = (files.first(index) + files.drop(index+1))
@@ -192,7 +194,7 @@ module Courage
         totalFiles
       end
 
-      def self.start_mutations(files: files, params: params, verbose: verbose)
+      def self.start_mutations(files: nil, params: nil, verbose: false)
           mutation_succeeded = []   
           mutation_failed = []                        
           mutation_skipped = []     
@@ -234,7 +236,7 @@ module Courage
             if rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose) != true
               #mutation cannot be built from .sil
                mutation_skipped.push("Unsupported file: #{file[:compilingFile]}")
-               UI.error("File ineligable for mutation: #{file[:compilingFile]}")
+               UI.important("File ineligable for mutation: #{file[:compilingFile]}")
             else
               # mutation eligable
               for i in 0..(mutations.mutationsCount - 1)
@@ -258,16 +260,14 @@ module Courage
           end
           `mv #{output}_ #{output}`
         end
-        if verbose 
-          UI.message("-----------")
-          UI.message("Succeeded:")
-          UI.message("#{mutation_succeeded}")
-          UI.message("Failed:")
-          UI.message("#{mutation_failed}")
-          UI.message("Skipped:")
-          UI.message("#{mutation_skipped}")
-          UI.message("-----------")
-        end
+        UI.message("-----------")
+        UI.message("Succeeded:")
+        UI.message("#{mutation_succeeded}")
+        UI.message("Failed:")
+        UI.message("#{mutation_failed}")
+        UI.message("Skipped:")
+        UI.message("#{mutation_skipped}")
+        UI.message("-----------")
         successes = mutation_succeeded.count
         failures = mutation_failed.count
         if successes + failures == 0
@@ -278,30 +278,31 @@ module Courage
 
       end
 
-      def self.start_device(device)
+      def self.start_device(device , verbose)
         Core::CommandExecutor.execute(command: "xcrun simctl boot \"#{device}\"",
                                           print_all: true,
-                                      print_command: true,
+                                      print_command: verbose,
                                       loading: "Starting simulator...",
                                       error: proc do |error_output|
                                         begin
                                           rescue => ex
                                         end
-                                        end
+                                        end,
+                                      suppress_output: true
                                       )
       end
 
-      def self.rebuild_and_test(command: command, linkCommand: linkCommand, params: params, verbose: verbose)
+      def self.rebuild_and_test(command: nil, linkCommand: nil, params: nil, verbose: false)
         begin
           # Build after mutation
-          Core::CommandExecutor.execute(command: command,
-                                          print_all: verbose,
+          Core::CommandExecutor.execute(command: "#{command} &> /dev/null",
+                                          print_all: true,
                                       print_command: verbose
                                       )
 
           # Link after mutation
-          Core::CommandExecutor.execute(command: linkCommand,
-                                          print_all: verbose,
+          Core::CommandExecutor.execute(command: "#{linkCommand} &> /dev/null",
+                                          print_all: true,
                                       print_command: verbose
                                       )
 
@@ -309,10 +310,10 @@ module Courage
           project = "-project #{params[:project]}"
           project = "-workspace #{params[:workspace]}" if params[:workspace]
 
-          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -parallel-testing-enabled NO -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null"
+          test_command = "expect -c \"spawn xcodebuild test-without-building #{project} -scheme #{params[:scheme]} -parallel-testing-enabled NO -destination \\\"platform=iOS Simulator,name=#{params[:device]}\\\"; expect -re \\\"Fatal error:|'\sfailed\\\.|Terminating\sapp\sdue\\\" {exit 1} \" &> /dev/null "
           begin
             Core::CommandExecutor.execute(command: test_command,
-                                            print_all: false,
+                                            print_all: true,
                                         print_command: verbose)
             return true
           rescue => testEx
