@@ -1,8 +1,0 @@
-
-- mutation: 
-    name: "No operation"
-    required:
-      return: "()"
-    actions:
-      before_function_return: "\ \ %1 = tuple ()                                   // user: %2\n
-\ return %1 : $()                                 // id: %2"

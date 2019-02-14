@@ -1,6 +1,7 @@
 # Finder metadata
 .DS_Store
 *.gem
+.gems/
 *.rbc
 .bundle
 .config
