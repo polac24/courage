@@ -10,7 +10,7 @@ module Courage
     class SILMutations
       def initialize(blocks, allowed_symbols)
         @blocks = blocks
-        @all_symbols = blocks.select{|x| ["function", "function_definition", "global_variable"].include?(x.type)}.map{|function|
+        @all_symbols = blocks.select{|x| supported_block_types.include?(x.type)}.map{|function|
           function.definition.name
         }
 
@@ -38,6 +38,10 @@ module Courage
           }
         }
         @all_mutations = all_mutations
+      end
+
+      def supported_block_types() 
+        ["function", "function_definition", "global_variable"]
       end
 
       def print_mutation(i, output)

@@ -39,7 +39,7 @@ OptionParser.new do |opts|
     options[:target] = target
   end
 
-  opts.on("-i", "--sil-file file1", "Simple sil file mutation") do |sil|
+  opts.on("-i", "--sil-file file1", "Simple sil file mutation (only for advanced users)") do |sil|
     options[:sil_file] = sil
   end
 

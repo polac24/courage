@@ -1,3 +1,4 @@
+require_relative '../build/courage_build'
 require_relative '../parser/courage_parser'
 require_relative '../mutation/courage_sil_mutation'
 require_relative '../ui/ui'
@@ -18,105 +19,23 @@ module Courage
 
           mutations = Mutation::SILMutations.new(parsed.parsed, allowed_symbols)
           puts mutations.mutationsCount
-          mutations.print_mutation(1, $stdout)
+          mutations.print_mutation(0, $stdout)
           return 
         end
 
-        all_builds = []
-        buildCommands = []
-        linkCommand = nil
-
-        compileGroup = false
-        linkGroup = false
-        enabledTarget = true
-        targetName = ""
         verbose = params[:verbose] 
 
 
         start_device(params[:device], verbose)
-        project = "-project #{params[:project]}"
-        project = "-workspace #{params[:workspace]}" if params[:workspace]
-        command = "xcodebuild clean build-for-testing #{project} -scheme #{params[:scheme]} -destination 'platform=iOS Simulator,name=#{params[:device]}'"
-
-
-        prefix_hash = [
-        {
-          prefix: "",
-          block: proc do |value|
-
-            targetMatcher = lambda { |line| 
-              if currentTarget = line[/\s\(in\starget\:\s([^\)]+)\)/, 1] 
-                if currentTarget != targetName
-                  return currentTarget
-                end
-              end
-              targetName
-            }
-            # support old & new build system (new build system after "||")
-            if value.include?("=== BUILD TARGET") || (targetMatcher.call(value) != targetName)
-              if !buildCommands.empty?
-                all_builds.push(buildCommands)
-                buildCommands = []
-              end
-              targetName = targetMatcher.call(value)
-              enabledTarget = (value.include?("=== BUILD TARGET #{params[:target]}") || targetName == params[:target])
-              linkGroup = false
-            end
-
-
-            if value.to_s.empty? 
-              compileGroup = false
-            elsif value.include?("XCTest.framework")
-              enabledTarget = false
-            elsif value.include?("CompileSwift")
-              compileGroup = true
-            elsif compileGroup && value.include?("/swift ") && enabledTarget
-              UI.message(value) if verbose
-              # copy fileList into a local file
-              if fileList = value[/\s\-filelist\s(\S+)/,1] 
-                if fileLists["#{fileList}"].nil?
-                  copiedFileListsPath = "#{fileList}_"
-                  Core::CommandExecutor.execute(command: "cp -r #{fileList} #{copiedFileListsPath}")
-                  fileLists["#{fileList}"] = copiedFileListsPath
-                end
-              end
-              value = fileLists.reduce(value) {|prevValue,(key, value)| prevValue.gsub(key, value)}
-              buildCommands.push(value)
-            elsif value.include?("Ld")
-              linkGroup = true
-            elsif linkGroup && value.include?("/clang ") && enabledTarget
-              linkCommand = value
-              linkGroup = false
-            end
-
-          end
-        }
-      ]
-
-      Core::CommandExecutor.execute(command: command,
-                                  print_all: true,
-                              print_command: verbose,
-                                     prefix: prefix_hash,
-                                    loading: "Building project...",
-                                      error: proc do |error_output|
-                                        begin
-                                          exit_status = $?.exitstatus
-                                          ErrorHandler.handle_build_error(error_output)
-                                        rescue => ex
-                                          SlackPoster.new.run({
-                                            build_errors: 1
-                                          })
-                                          raise ex
-                                        end
-                                      end)
-
-      if !buildCommands.empty?
-        all_builds.push(buildCommands)
-        buildCommands = []
-      end
-
+        build_parser = Build::XcodeBuildParser.new(target: params[:target], verbose: verbose)
+        xcode_builder = Build::XcodeBuild.new(project: params[:project], workspace: params[:workspace], scheme: params[:scheme], device: params[:device])
+        xcode_builder.build(parser: build_parser, verbose: verbose)
+        fileLists = build_parser.fileLists
+        
       UI.message("Project scanning...")
-      all_builds.each {|buildCommands|
+
+      linkCommand = build_parser.linkCommand()
+      build_parser.all_build_commands.each {|buildCommands|
         files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
 
         start_mutations(files:files, params: params, verbose: verbose)
