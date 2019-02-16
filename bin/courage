@@ -35,8 +35,8 @@ OptionParser.new do |opts|
     options[:scheme] = scheme
   end
 
-  opts.on("-t", "--target TARGET", "TARGET to mutate") do |target|
-    options[:target] = target
+  opts.on("-t", "--targets target1,target2,....", Array, "Targets to mutate. Default to use all targets") do |targets|
+    options[:targets] = targets
   end
 
   opts.on("-i", "--sil-file file1", "Simple sil file mutation (only for advanced users)") do |sil|
@@ -56,7 +56,6 @@ result = nil
 raise OptionParser::MissingArgument if options[:project].nil? && options[:workspace].nil?
 raise OptionParser::MissingArgument if options[:scheme].nil?
 raise OptionParser::MissingArgument if options[:device].nil?
-raise OptionParser::MissingArgument if options[:target].nil?
 
 
 Courage::courage(options)

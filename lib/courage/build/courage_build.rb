@@ -22,11 +22,11 @@ module Courage
   	end
 
   	class XcodeBuildParser
-      def initialize(target: nil, verbose: false)
+      def initialize(targets:[],verbose:false)
       	@all_build_commands = []
       	@buildCommandsStack = []
         @linkCommand = nil
-        @target = target
+        @targets = targets.nil? ? [] : targets
         @verbose = verbose
         @fileLists = {}
       end
@@ -45,6 +45,17 @@ module Courage
         @fileLists
       end
 
+      private def target_changed(line: nil) 
+        # new build system
+        if newTarget = line[/\s\(in\starget\:\s([^\)]+)\)/, 1] 
+            return newTarget
+        end
+        #legacy build system
+        if newTarget = line[/=== BUILD TARGET (\S*)"/, 1] 
+            return newTarget
+        end
+        return nil
+      end
       def output_prefix () 
       	targetName = ""
     		enabledTarget = true
@@ -54,24 +65,16 @@ module Courage
       	[{
           prefix: "",
           block: proc do |value|
-            targetMatcher = lambda { |line| 
-              if currentTarget = line[/\s\(in\starget\:\s([^\)]+)\)/, 1] 
-                if currentTarget != targetName
-                  return currentTarget
-                end
-              end
-              targetName
-            }
-            # support old & new build system (new build system after "||")
-            if value.include?("=== BUILD TARGET") || (targetMatcher.call(value) != targetName)
+            if new_target = target_changed(line: value)
               if !@buildCommandsStack.empty?
                 @all_build_commands.push(@buildCommandsStack)
                 @buildCommandsStack = []
               end
-              targetName = targetMatcher.call(value)
-              enabledTarget = (value.include?("=== BUILD TARGET #{@target}") || targetName == @target)
+              targetName = new_target
+              enabledTarget = (@targets.empty? || @targets.include?(new_target))
               linkGroup = false
             end
+
             if value.to_s.empty? 
               compileGroup = false
             elsif value.include?("XCTest.framework")
@@ -89,7 +92,7 @@ module Courage
               end
               value = fileLists.reduce(value) {|prevValue,(key, value)| prevValue.gsub(key, value)}
               @buildCommandsStack.push(value)
-            elsif value.include?("Ld")
+            elsif value.include?("Ld ")
               linkGroup = true
             elsif linkGroup && value.include?("/clang ") && enabledTarget
               @linkCommand = value
