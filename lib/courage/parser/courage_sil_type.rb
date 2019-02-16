@@ -1,7 +1,7 @@
 
 module Courage
 
-  module Helper
+  module Parser
     class Type
       def self.build(type)
         type = type.strip

@@ -1,7 +1,7 @@
 
 module Courage
 
-  module Helper
+  module Parser
     class SILBlock
       def self.nextBlock(provider)
         lines = []
@@ -52,6 +52,7 @@ module Courage
         @lines.join("\n")
       end
     end
+
     class SILGlobalVariable < SILBlock
       def self.build(provider)
         lines = [provider.read, provider.read]
@@ -74,6 +75,7 @@ module Courage
         @definition.print(output)
       end
     end
+
     class SILFunctionHeader < SILBlock
       def self.build(provider)
         lines = [provider.read, provider.read]
@@ -96,6 +98,7 @@ module Courage
         @definition.print(output)
       end
     end
+
     class SILFunction < SILFunctionHeader
       def self.build(provider)
         lines = []
@@ -322,6 +325,7 @@ module Courage
         return line.scan(/%(\d*)/)
       end
     end
+
     class SILGlobalDefinition < SILBlock
       def initialize(line)
         super ([line])
@@ -336,6 +340,7 @@ module Courage
         @name
       end
     end
+    
     class SILAccess
       def self.readAll(lines_provider)
         accesses = []

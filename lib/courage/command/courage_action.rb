@@ -1,4 +1,5 @@
-require_relative '../helper/courage_helper'
+require_relative '../parser/courage_parser'
+require_relative '../mutation/courage_sil_mutation'
 require_relative '../ui/ui'
 require_relative '../commands/command_executor'
 
@@ -10,12 +11,12 @@ module Courage
         fileLists = {}
 
         if  params[:sil_file] 
-          # Helper::SILParser.new(params[:sil_file]).print($stdout)
-          allowed_symbols = Helper::SILParser.new(params[:sil_file].gsub(/\.sil/, '_profiles.sil')).explicit_symbols
-          parsed = Helper::SILParser.new(params[:sil_file])
+          # Parser::SILParser.new(params[:sil_file]).print($stdout)
+          allowed_symbols = Parser::SILParser.new(params[:sil_file].gsub(/\.sil/, '_profiles.sil')).explicit_symbols
+          parsed = Parser::SILParser.new(params[:sil_file])
           puts parsed.explicit_symbols
 
-          mutations = Helper::SILMutations.new(parsed.parsed, allowed_symbols)
+          mutations = Mutation::SILMutations.new(parsed.parsed, allowed_symbols)
           puts mutations.mutationsCount
           mutations.print_mutation(1, $stdout)
           return 
@@ -201,10 +202,10 @@ module Courage
 
           # TODO: optimize searching for mutations
           total_mutations = files.reverse.inject([]) {|prev, file|
-            allowed_symbols = Helper::SILParser.new(file[:sil_with_profiles]).explicit_symbols
-            parsed = Helper::SILParser.new(file[:sil_reference])
+            allowed_symbols = Parser::SILParser.new(file[:sil_with_profiles]).explicit_symbols
+            parsed = Parser::SILParser.new(file[:sil_reference])
             parsedBlocks = parsed.parsed
-            mutations = Helper::SILMutations.new(parsedBlocks, allowed_symbols)
+            mutations = Mutation::SILMutations.new(parsedBlocks, allowed_symbols)
             mutations_count = mutations.mutationsCount
             mutations_names = (0...mutations_count).map{|x| mutations.mutation_name(x)}
             prev+mutations_names
@@ -221,10 +222,10 @@ module Courage
           new_output = output.gsub(".o", ".o_")
           `mv #{output} #{new_output}`
           # Mutate - TD
-          allowed_symbols = Helper::SILParser.new(file[:sil_with_profiles]).explicit_symbols
-          parsed = Helper::SILParser.new(file[:sil_reference])
+          allowed_symbols = Parser::SILParser.new(file[:sil_with_profiles]).explicit_symbols
+          parsed = Parser::SILParser.new(file[:sil_reference])
           parsedBlocks = parsed.parsed
-          mutations = Helper::SILMutations.new(parsedBlocks, allowed_symbols)
+          mutations = Mutation::SILMutations.new(parsedBlocks, allowed_symbols)
 
           
 

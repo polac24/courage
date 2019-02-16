@@ -1,9 +1,8 @@
-require_relative 'courage_helper_types'
-require_relative 'courage_helper_blocks'
-require_relative 'courage_helper_mutations'
+require_relative 'courage_sil_type'
+require_relative 'courage_sil_block'
 
 module Courage
-  module Helper
+  module Parser
     class SILParser
       # class methods that you define here become available in your action
       # as `Helper::SILParser.your_method`
