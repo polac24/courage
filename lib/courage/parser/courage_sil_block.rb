@@ -529,7 +529,8 @@ module Courage
         @line_number = lines_provider.index
         line = lines_provider.read()
         ##    %15 = builtin "sadd_with_overflow_Int64"(%12 : $Builtin.Int64, %13 : $Builtin.Int64, %14 : $Builtin.Int1) : $(Builtin.Int64, Builtin.Int1) // users: %17, %16
-        id, @name, @input, @output = line[:value].match(/%(\d+) = builtin "(\S+)"\((.*)\) : \$\((.*)\)/).captures
+        ##  %51 = builtin "ptrtoint_Word"(%49 : $Builtin.RawPointer) : $Builtin.Word // user: %55
+        id, @name, @input, @output = line[:value].match(/%(\d+) = builtin "(\S+)"\((.*)\) : \$(.*?)(\/\/|$)/).captures
         @id = id.to_i
       end
       def id
