@@ -35,11 +35,12 @@ module Courage
       UI.message("Project scanning...")
 
       linkCommand = build_parser.linkCommand()
+      files = []
       build_parser.all_build_commands.each {|buildCommands|
-        files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
-
-        start_mutations(files:files, params: params, verbose: verbose)
+        command_files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
+        files.push(*command_files)     
       }
+      start_mutations(files:files, params: params, verbose: verbose)
       ensure
         # remove temprary -filelist copies
         fileLists.each do |origianal_path, copied_path|
