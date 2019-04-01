@@ -27,7 +27,7 @@ module Courage
 
 
         start_device(params[:device], verbose)
-        build_parser = Build::XcodeBuildParser.new(targets: params[:target], verbose: verbose)
+        build_parser = Build::XcodeBuildParser.new(targets: params[:targets], verbose: verbose)
         xcode_builder = Build::XcodeBuild.new(project: params[:project], workspace: params[:workspace], scheme: params[:scheme], device: params[:device])
         xcode_builder.build(parser: build_parser, verbose: verbose)
         fileLists = build_parser.fileLists

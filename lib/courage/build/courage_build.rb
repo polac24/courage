@@ -32,10 +32,10 @@ module Courage
       end
       def all_build_commands()
       	# First retrival for commands - move from buildCommandsStack
-	    if !@buildCommandsStack.empty?
-	        all_builds.push(@buildCommandsStack)
-	        @buildCommandsStack = []
-	    end
+  	    if !@buildCommandsStack.empty?
+  	        @all_build_commands.push(@buildCommandsStack)
+  	        @buildCommandsStack = []
+  	    end
         @all_build_commands
       end
       def linkCommand()

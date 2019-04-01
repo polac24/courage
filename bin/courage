@@ -50,12 +50,18 @@ OptionParser.new do |opts|
   opts.on("-v", "--verbose", "Enabled verbose") do |v|
     options[:verbose] = true
   end
+
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
 end.parse!
 
 result = nil
 raise OptionParser::MissingArgument if options[:project].nil? && options[:workspace].nil?
 raise OptionParser::MissingArgument if options[:scheme].nil?
 raise OptionParser::MissingArgument if options[:device].nil?
+raise OptionParser::MissingArgument if options[:targets].nil?
 
 
 Courage::courage(options)

@@ -487,7 +487,7 @@ module Courage
         @line_number = lines_provider.index
         line = lines_provider.read()
         ##   %6 = struct $Double (%5 : $Builtin.FPIEEE64)    // user: %7
-        id, @type, source_id, @source_type, @user_section = line[:value].match(/%(\d+) = struct (\S*) \(%(\d+) \: (.*)\)\s*\/\/ user(.*)/).captures
+        id, @type, source_id, @source_type, @user_section = line[:value].match(/%(\d+) = struct (\S*) \(%(\d+) \: (.*)\)\s*(\/\/ user(.*))?/).captures
         @id = id.to_i
         @source_id = source_id.to_i
       end
