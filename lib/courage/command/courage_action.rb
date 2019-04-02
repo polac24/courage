@@ -34,10 +34,10 @@ module Courage
         
       UI.message("Project scanning...")
 
-      linkCommand = build_parser.linkCommand()
+      linkCommands = build_parser.linkCommands()
       files = []
       build_parser.all_build_commands.each {|buildCommands|
-        command_files = make_sibs(commands:buildCommands.reverse, linkCommand: linkCommand, verbose: verbose)
+        command_files = make_sibs(commands:buildCommands.reverse, linkCommands: linkCommands, verbose: verbose)
         files.push(*command_files)     
       }
       start_mutations(files:files, params: params, verbose: verbose)
@@ -48,7 +48,7 @@ module Courage
         end
       end
 
-      def self.make_sibs(commands: nil, linkCommand: nil, verbose: false)
+      def self.make_sibs(commands: nil, linkCommands: nil, verbose: false)
         files = []
         all_swifts = commands.reduce([]) {|prev,file| prev.push(file[/\s-primary-file\s(.*?\.swift|\".*\.swift\")\s/,1])}
         commands.each do |element|
@@ -69,7 +69,7 @@ module Courage
 
           command = element.gsub(/-emit-module-path.*?\.swiftmodule\"?\s/, ' ').gsub('.o', '.sib') + " -emit-sib"
           sibFile = command[/\s-o\s([^\"].*?[^\\]|\".*?\")\s/,1]
-          files.push({sibPath:sibFile, command: element, compilingFile:compilingFile, linkCommand: linkCommand, oFile:oFile})
+          files.push({sibPath:sibFile, command: element, compilingFile:compilingFile, linkCommands: linkCommands, oFile:oFile})
           Core::CommandExecutor.execute(command: command,
                                           print_all: true,
                                       print_command: verbose)
@@ -109,7 +109,7 @@ module Courage
           `cp #{sil_mutated} #{sil_reference}`
           command = element[:command].gsub(/\s(\S*?\.swift|\".*\.swift\")/, ' ').sub(' -primary-file ',' ') + " #{all_sibs} -primary-file #{sil_mutated}"
       
-          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, sil_with_profiles: sil_profiles_reference, linkCommand: element[:linkCommand], oFile:element[:oFile], compilingFile: element[:compilingFile]}
+          file = {sibPaths:all_sibs, rebuildCommand:command, originalSil: sil, mutationSill: sil_mutated, sil_reference: sil_reference, sil_with_profiles: sil_profiles_reference, linkCommands: element[:linkCommands], oFile:element[:oFile], compilingFile: element[:compilingFile]}
           totalFiles.push(file)
         end
         totalFiles
@@ -137,7 +137,7 @@ module Courage
         files.reverse_each do |file|      
 
           command = file[:rebuildCommand] + " -assume-parsing-unqualified-ownership-sil"
-          linkCommand = file[:linkCommand]
+          linkCommands = file[:linkCommands]
           output = file[:oFile]
           new_output = output.gsub(".o", ".o_")
           `mv #{output} #{new_output}`
@@ -154,7 +154,7 @@ module Courage
             parsed.printToFile(file[:mutationSill])
             #UI.message("Mutations for file: #{file[:originalSil]}")
 
-            if rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose) != true
+            if rebuild_and_test(command:command, linkCommands:linkCommands, params:params, verbose: verbose) != true
               #mutation cannot be built from .sil
                mutation_skipped.push("Unsupported file: #{file[:compilingFile]}")
                UI.important("File ineligable for mutation: #{file[:compilingFile]}")
@@ -164,7 +164,7 @@ module Courage
                 mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
                 UI.message("Running mutation: #{mutation_name}...")
                 
-                test_result = rebuild_and_test(command:command, linkCommand:linkCommand, params:params, verbose: verbose)
+                test_result = rebuild_and_test(command:command, linkCommands:linkCommands, params:params, verbose: verbose)
                 case test_result
                 when nil
                   mutation_skipped.push(mutation_name)
@@ -213,7 +213,7 @@ module Courage
                                       )
       end
 
-      def self.rebuild_and_test(command: nil, linkCommand: nil, params: nil, verbose: false)
+      def self.rebuild_and_test(command: nil, linkCommands: nil, params: nil, verbose: false)
         begin
           # Build after mutation
           Core::CommandExecutor.execute(command: "#{command} &> /dev/null",
@@ -222,10 +222,12 @@ module Courage
                                       )
 
           # Link after mutation
-          Core::CommandExecutor.execute(command: "#{linkCommand} &> /dev/null",
-                                          print_all: true,
-                                      print_command: verbose
-                                      )
+          linkCommands.each_with_index do |element, index|
+            Core::CommandExecutor.execute(command: "#{element} &> /dev/null",
+                                            print_all: true,
+                                        print_command: verbose
+                                        )
+          end
 
 
           project = "-project #{params[:project]}"

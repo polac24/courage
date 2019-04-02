@@ -25,7 +25,7 @@ module Courage
       def initialize(targets:[],verbose:false)
       	@all_build_commands = []
       	@buildCommandsStack = []
-        @linkCommand = nil
+        @linkCommands = []
         @targets = targets.nil? ? [] : targets
         @verbose = verbose
         @fileLists = {}
@@ -38,8 +38,8 @@ module Courage
   	    end
         @all_build_commands
       end
-      def linkCommand()
-        @linkCommand
+      def linkCommands()
+        @linkCommands
       end
       def fileLists()
         @fileLists
@@ -65,7 +65,8 @@ module Courage
       	[{
           prefix: "",
           block: proc do |value|
-            if new_target = target_changed(line: value)
+
+            if (new_target = target_changed(line: value)) && targetName != new_target
               if !@buildCommandsStack.empty?
                 @all_build_commands.push(@buildCommandsStack)
                 @buildCommandsStack = []
@@ -79,6 +80,8 @@ module Courage
               compileGroup = false
             elsif value.include?("XCTest.framework")
               enabledTarget = false
+              @buildCommandsStack = []
+
             elsif value.include?("CompileSwift")
               compileGroup = true
             elsif compileGroup && value.include?("/swift ") && enabledTarget
@@ -90,12 +93,12 @@ module Courage
                   @fileLists["#{fileList}"] = copiedFileListsPath
                 end
               end
-              value = fileLists.reduce(value) {|prevValue,(key, value)| prevValue.gsub(key, value)}
+              value = @fileLists.reduce(value) {|prevValue,(key, value)| prevValue.gsub(key, value)}
               @buildCommandsStack.push(value)
             elsif value.include?("Ld ")
               linkGroup = true
-            elsif linkGroup && value.include?("/clang ") && enabledTarget
-              @linkCommand = value
+            elsif linkGroup && value.include?("/clang ")
+              @linkCommands.push(value) if enabledTarget
               linkGroup = false
             end
           end

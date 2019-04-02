@@ -61,7 +61,6 @@ result = nil
 raise OptionParser::MissingArgument if options[:project].nil? && options[:workspace].nil?
 raise OptionParser::MissingArgument if options[:scheme].nil?
 raise OptionParser::MissingArgument if options[:device].nil?
-raise OptionParser::MissingArgument if options[:targets].nil?
 
 
 Courage::courage(options)

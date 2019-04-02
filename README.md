@@ -14,10 +14,10 @@
 
 ```bash
 bundle install
-bundle exec courage -s path/to/project.xcproj -s ShemeName -t ImplementationTarget -d "iPhone X"
+bundle exec courage -s path/to/project.xcproj -s ShemeName -d "iPhone X"
 
 # Optionally wor workspace
-bundle exec courage -w path/to/project.xcworkspace -s MutationProject -t ImplementationTarget -d "iPhone X"
+bundle exec courage -w path/to/project.xcworkspace -s MutationProject -d "iPhone X"
 ```
 
 ### Help
