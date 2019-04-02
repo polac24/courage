@@ -161,10 +161,16 @@ module Courage
             else
               # mutation eligable
               for i in 0..(mutations.mutationsCount - 1)
-                mutation_name = mutations.print_mutation_to_file(i, file[:mutationSill])
-                UI.message("Running mutation: #{mutation_name}...")
-                
-                test_result = rebuild_and_test(command:command, linkCommands:linkCommands, params:params, verbose: verbose)
+                test_result = nil
+                mutation_name = mutations.mutation_name(i)
+                begin
+                  mutations.print_mutation_to_file(i, file[:mutationSill])
+                  UI.message("Running mutation: #{mutation_name}...")
+                  
+                  test_result = rebuild_and_test(command:command, linkCommands:linkCommands, params:params, verbose: verbose)
+                rescue => testEx
+                  # cannot be verified
+                end
                 case test_result
                 when nil
                   mutation_skipped.push(mutation_name)
