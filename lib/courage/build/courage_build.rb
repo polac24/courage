@@ -51,7 +51,7 @@ module Courage
             return newTarget
         end
         #legacy build system
-        if newTarget = line[/=== BUILD TARGET (\S*)"/, 1] 
+        if newTarget = line[/=== BUILD TARGET (\S*)/, 1] 
             return newTarget
         end
         return nil
