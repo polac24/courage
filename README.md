@@ -2,7 +2,7 @@
 
 ### Requirements:
 
-* Xcode 10.1
+* Xcode 10.1 or Xcode 10.2
 * Bundler 16.1
 * Ruby 2.5.0
 
