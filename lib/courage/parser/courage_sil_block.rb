@@ -177,7 +177,7 @@ module Courage
         @attributes = []
 
         return_string_index_start = 0
-        convention_index = @line.index(": $@convention(")
+        convention_index = @line.index(" : $")
 
         tokens_definition = @line[0..(convention_index-1)].split(' ')
         tokens_definition.each_with_index do |token, index| 
@@ -195,7 +195,7 @@ module Courage
             parsed_tokens.append({type:"other", value:token})
           end
         end
-        second_part = @line[convention_index + 2...@line.length]
+        second_part = @line[convention_index + 3...@line.length]
         end_index = second_part.size
         end_index = second_part.index("{") unless second_part.index("{").nil?
         return_string=second_part[(second_part.index(")")+1)..(end_index-1)]
